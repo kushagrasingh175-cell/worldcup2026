@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FIFA World Cup 2026 — Live Tracker</title>
+<style>
+/* ============================================================
+   THEME TOKENS (light + dark)
+   ============================================================ */
+:root{
+  --bg:#0f1420; --bg-2:#161d2e; --panel:#1b2436; --panel-2:#212c42;
+  --line:#2c3a55; --line-soft:#243047;
+  --txt:#e8edf7; --txt-2:#9fb0cc; --txt-3:#6f81a0;
+  --accent:#37d3a6; --accent-2:#4f8cff; --gold:#ffcf4d;
+  --qualify:#1f5d4a; --qualify-bd:#37d3a6;
+  --third:#5a4a1c; --third-bd:#ffcf4d;
+  --elim:#3a2230; --elim-bd:#ff6b7d;
+  --win-row:rgba(55,211,166,.10); --third-row:rgba(255,207,77,.10);
+  --shadow:0 6px 22px rgba(0,0,0,.35);
+  --radius:14px; --radius-sm:9px;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+[data-theme="light"]{
+  --bg:#eef2f8; --bg-2:#e3e9f3; --panel:#ffffff; --panel-2:#f5f8fd;
+  --line:#d4ddec; --line-soft:#e4ebf5;
+  --txt:#16202f; --txt-2:#4a5a73; --txt-3:#8493ab;
+  --accent:#12936e; --accent-2:#2f6df0; --gold:#c98a00;
+  --qualify:#d8f5ea; --qualify-bd:#12936e;
+  --third:#fbeecb; --third-bd:#c98a00;
+  --elim:#fbe0e6; --elim-bd:#e23b54;
+  --win-row:rgba(18,147,110,.10); --third-row:rgba(201,138,0,.12);
+  --shadow:0 6px 20px rgba(40,60,90,.12);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:radial-gradient(1200px 600px at 70% -10%,var(--bg-2),var(--bg)) fixed;
+  color:var(--txt); font-family:var(--sans); font-size:14px; line-height:1.45;
+  -webkit-font-smoothing:antialiased; transition:background .35s,color .35s;
+}
+a{color:var(--accent-2)}
+.wrap{max-width:1320px;margin:0 auto;padding:0 18px 60px}
+
+/* ---------- Header ---------- */
+header.app{
+  position:sticky;top:0;z-index:50;backdrop-filter:blur(10px);
+  background:linear-gradient(180deg,rgba(15,20,32,.92),rgba(15,20,32,.78));
+  border-bottom:1px solid var(--line);
+}
+[data-theme="light"] header.app{background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(255,255,255,.8))}
+.head-inner{max-width:1320px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:11px;font-weight:800;letter-spacing:.2px;font-size:17px}
+.brand .logo{
+  width:34px;height:34px;border-radius:10px;flex:0 0 auto;
+  background:conic-gradient(from 210deg,var(--accent),var(--accent-2),var(--gold),var(--accent));
+  display:grid;place-items:center;color:#04121c;font-weight:900;font-size:13px;box-shadow:var(--shadow)
+}
+.brand small{display:block;font-weight:600;color:var(--txt-3);font-size:11px;letter-spacing:.4px}
+.head-tools{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.status-pill{
+  display:flex;align-items:center;gap:7px;font-size:12px;color:var(--txt-2);
+  background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px
+}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 var(--accent);animation:pulse 2s infinite}
+.dot.idle{background:var(--txt-3);animation:none}
+.dot.err{background:#ff6b7d;animation:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(55,211,166,.5)}70%{box-shadow:0 0 0 7px rgba(55,211,166,0)}100%{box-shadow:0 0 0 0 rgba(55,211,166,0)}}
+.btn{
+  appearance:none;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;
+  color:var(--txt);background:var(--panel);border:1px solid var(--line);
+  border-radius:9px;padding:7px 12px;display:inline-flex;align-items:center;gap:7px;
+  transition:transform .12s,border-color .2s,background .2s
+}
+.btn:hover{border-color:var(--accent);transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn.icon{padding:7px 9px}
+.btn.primary{background:linear-gradient(180deg,var(--accent-2),#3a76e6);color:#fff;border-color:transparent}
+
+/* ---------- Tabs ---------- */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 10px}
+.tab{
+  cursor:pointer;font-weight:700;font-size:13.5px;color:var(--txt-2);
+  padding:9px 15px;border-radius:10px;border:1px solid transparent;background:transparent;
+  transition:.18s
+}
+.tab:hover{color:var(--txt);background:var(--panel)}
+.tab.active{color:var(--txt);background:var(--panel);border-color:var(--line);box-shadow:var(--shadow)}
+.tab .badge{font-size:11px;color:var(--txt-3);font-weight:600;margin-left:5px}
+
+/* ---------- Toolbar (filters) ---------- */
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.field{position:relative;display:flex;align-items:center}
+.field input,.field select{
+  font-family:inherit;font-size:13px;color:var(--txt);background:var(--panel);
+  border:1px solid var(--line);border-radius:9px;padding:8px 12px;min-width:150px;outline:none
+}
+.field input:focus,.field select:focus{border-color:var(--accent-2)}
+.field input::placeholder{color:var(--txt-3)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-left:auto;font-size:12px;color:var(--txt-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.swatch{width:12px;height:12px;border-radius:3px;border:1px solid}
+.sw-q{background:var(--qualify);border-color:var(--qualify-bd)}
+.sw-3{background:var(--third);border-color:var(--third-bd)}
+.sw-e{background:var(--elim);border-color:var(--elim-bd)}
+
+/* ---------- Group cards ---------- */
+.group-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px}
+.card{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);overflow:hidden
+}
+.card-head{
+  display:flex;align-items:center;gap:10px;padding:12px 15px;cursor:pointer;
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));border-bottom:1px solid var(--line-soft)
+}
+.card-head h3{margin:0;font-size:15px;letter-spacing:.3px}
+.card-head .gtag{
+  width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-weight:800;
+  background:var(--bg-2);border:1px solid var(--line);color:var(--accent)
+}
+.card-head .state{margin-left:auto;font-size:11px;color:var(--txt-3);font-weight:600}
+.chev{transition:transform .25s;color:var(--txt-3)}
+.card.collapsed .chev{transform:rotate(-90deg)}
+.card.collapsed .card-body{display:none}
+
+table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+table.tbl th,table.tbl td{padding:8px 8px;text-align:center;white-space:nowrap}
+table.tbl th{
+  color:var(--txt-3);font-weight:700;font-size:11px;letter-spacing:.4px;text-transform:uppercase;
+  position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--line)
+}
+table.tbl td{border-bottom:1px solid var(--line-soft)}
+table.tbl tr:last-child td{border-bottom:none}
+table.tbl td.team{text-align:left;font-weight:600}
+table.tbl td.team .flag{margin-right:7px}
+table.tbl td.pts{font-weight:800;color:var(--txt)}
+table.tbl .pos{font-family:var(--mono);color:var(--txt-3);width:26px}
+.row-q{background:var(--win-row)}
+.row-q td.pos{color:var(--accent);font-weight:800}
+.row-3{background:var(--third-row)}
+.row-3 td.pos{color:var(--gold);font-weight:800}
+.row-e td.pos{color:var(--txt-3)}
+.qbar{width:4px;height:18px;border-radius:3px;display:inline-block;vertical-align:middle}
+.qbar.q{background:var(--accent-2)} .qbar.w{background:var(--accent)} .qbar.t{background:var(--gold)} .qbar.x{background:transparent}
+.hl{outline:2px solid var(--accent);outline-offset:-2px;border-radius:6px}
+
+/* ---------- Section panel ---------- */
+.panel{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:0;overflow:hidden;margin-bottom:18px
+}
+.panel-h{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line-soft);
+  background:linear-gradient(180deg,var(--panel-2),var(--panel))}
+.panel-h h2{margin:0;font-size:16px}
+.panel-h p{margin:0;color:var(--txt-3);font-size:12px}
+.panel-b{padding:14px 16px}
+.tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px}
+.tag.q{background:var(--qualify);color:var(--qualify-bd);border:1px solid var(--qualify-bd)}
+.tag.e{background:var(--elim);color:var(--elim-bd);border:1px solid var(--elim-bd)}
+
+/* third place big table */
+table.wide{width:100%;border-collapse:collapse;font-size:13.5px}
+table.wide th,table.wide td{padding:11px 12px;text-align:center}
+table.wide th{color:var(--txt-3);text-transform:uppercase;font-size:11px;letter-spacing:.4px;border-bottom:1px solid var(--line)}
+table.wide td{border-bottom:1px solid var(--line-soft)}
+table.wide td.team{text-align:left;font-weight:700}
+table.wide tr.q-row{background:var(--win-row)}
+table.wide tr.cut td{border-bottom:2px dashed var(--accent-2)}
+.rankn{font-family:var(--mono);color:var(--txt-3)}
+
+/* ---------- Bracket ---------- */
+.bracket-scroll{overflow-x:auto;padding:6px 2px 16px}
+.bracket{display:flex;gap:30px;min-width:1100px;align-items:stretch}
+.round{display:flex;flex-direction:column;justify-content:space-around;gap:10px;min-width:194px}
+.round-title{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--txt-3);font-weight:800;
+  text-align:center;margin-bottom:2px}
+.tie{
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;
+  box-shadow:var(--shadow);position:relative
+}
+.tie .mno{position:absolute;top:-8px;left:8px;font-size:9px;font-family:var(--mono);color:var(--txt-3);
+  background:var(--panel);padding:0 5px;border:1px solid var(--line);border-radius:6px}
+.slot{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:12.5px;border-bottom:1px solid var(--line-soft)}
+.slot:last-child{border-bottom:none}
+.slot .sflag{width:18px;text-align:center}
+.slot .sname{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot .sscore{margin-left:auto;font-family:var(--mono);font-weight:800;color:var(--txt-2);min-width:16px;text-align:right}
+.slot.win{background:var(--win-row)}
+.slot.win .sname{color:var(--accent)}
+.slot.win .sscore{color:var(--accent)}
+.slot.tbd .sname{color:var(--txt-3);font-style:italic;font-weight:500}
+.slot.pen .sscore::after{content:" (p)";font-size:9px;color:var(--gold)}
+.s3rd{display:inline-block;font-size:8.5px;font-weight:800;letter-spacing:.3px;vertical-align:middle;
+  color:var(--gold);background:var(--third);border:1px solid var(--third-bd);border-radius:5px;padding:0 4px;margin-left:4px}
+.final-tie{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),var(--shadow)}
+.champ{margin-top:10px;text-align:center;padding:12px;border-radius:12px;
+  background:linear-gradient(180deg,rgba(255,207,77,.16),transparent);border:1px solid var(--gold)}
+.champ .ttl{font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--gold);font-weight:800}
+.champ .who{font-size:18px;font-weight:800;margin-top:3px}
+
+/* ---------- Schedule ---------- */
+.sched-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px}
+.match{
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px
+}
+.match .mt{font-weight:600;display:flex;align-items:center;gap:6px;min-width:0}
+.match .mt.away{justify-content:flex-end;text-align:right}
+.match .mt .sname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.match .vs{font-family:var(--mono);font-weight:800;background:var(--bg-2);border:1px solid var(--line);
+  border-radius:7px;padding:3px 9px;color:var(--txt-2);min-width:54px;text-align:center}
+.match .vs.sched{color:var(--txt-3);font-size:11px}
+.match.winl .mt.home .sname{color:var(--accent)}
+.match.winr .mt.away .sname{color:var(--accent)}
+.sched-group{margin:18px 0 8px;font-weight:800;color:var(--txt-2);font-size:13px;letter-spacing:.3px}
+.meta{font-size:11px;color:var(--txt-3);font-family:var(--mono)}
+
+/* ---------- misc ---------- */
+.empty{padding:40px;text-align:center;color:var(--txt-3)}
+.banner{margin:14px 0;padding:11px 14px;border-radius:10px;border:1px solid var(--line);
+  background:var(--panel-2);font-size:12.5px;color:var(--txt-2);display:flex;gap:10px;align-items:center}
+.banner.warn{border-color:var(--third-bd);background:var(--third)}
+.hide{display:none!important}
+footer.app{margin-top:30px;color:var(--txt-3);font-size:12px;text-align:center;padding:20px}
+
+/* ---------- responsive ---------- */
+@media(max-width:560px){
+  .group-grid{grid-template-columns:1fr}
+  table.tbl th,table.tbl td{padding:7px 5px;font-size:12px}
+  .legend{margin-left:0;width:100%}
+  .head-tools .lbl{display:none}
+}
+
+/* ---------- print ---------- */
+@media print{
+  header.app,.tabs,.toolbar,.head-tools,.btn,.banner,footer.app{display:none!important}
+  body{background:#fff;color:#000}
+  .panel,.card{break-inside:avoid;box-shadow:none;border-color:#bbb}
+  .bracket-scroll{overflow:visible}
+  .bracket{min-width:0}
+  .view{display:block!important}
+}
+body.print-mode{--bg:#fff;--bg-2:#fff}
+</style>
+</head>
+<body>
+<header class="app">
+  <div class="head-inner">
+    <div class="brand">
+      <div class="logo">26</div>
+      <div>FIFA World Cup 2026 <small>Live Standings &amp; Knockout Tracker</small></div>
+    </div>
+    <div class="head-tools">
+      <div class="status-pill"><span id="liveDot" class="dot idle"></span><span id="liveText" class="lbl">Idle</span></div>
+      <div class="status-pill"><span class="lbl">Updated</span>&nbsp;<span id="updatedAt" class="meta">—</span></div>
+      <button class="btn icon" id="refreshBtn" title="Refresh now">⟳ <span class="lbl">Refresh</span></button>
+      <button class="btn icon" id="csvBtn" title="Export standings CSV">⤓ <span class="lbl">CSV</span></button>
+      <button class="btn icon" id="printBtn" title="Print">🖨 <span class="lbl">Print</span></button>
+      <button class="btn icon" id="themeBtn" title="Toggle theme">◐</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="dataBanner" class="banner hide"></div>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-view="groups">Group Stage</button>
+    <button class="tab" data-view="thirds">Best Third-Place</button>
+    <button class="tab" data-view="bracket">Knockout Bracket</button>
+    <button class="tab" data-view="schedule">Match Schedule</button>
+  </nav>
+
+  <!-- GROUPS -->
+  <section class="view" id="view-groups">
+    <div class="toolbar">
+      <div class="field"><input id="searchInput" type="search" placeholder="🔍  Search team…" autocomplete="off"></div>
+      <div class="field">
+        <select id="groupFilter"><option value="">All groups</option></select>
+      </div>
+      <button class="btn" id="expandAll">Expand all</button>
+      <button class="btn" id="collapseAll">Collapse all</button>
+      <div class="legend">
+        <span><i class="swatch sw-q"></i>Qualified (Top 2)</span>
+        <span><i class="swatch sw-3"></i>3rd place</span>
+        <span><i class="swatch sw-e"></i>Eliminated</span>
+      </div>
+    </div>
+    <div class="group-grid" id="groupGrid"></div>
+  </section>
+
+  <!-- THIRDS -->
+  <section class="view hide" id="view-thirds">
+    <div class="panel">
+      <div class="panel-h">
+        <div>
+          <h2>Ranking of Third-Placed Teams</h2>
+          <p>The best 8 of 12 third-placed teams advance. Tiebreakers: Points → Goal Difference → Goals For.</p>
+        </div>
+      </div>
+      <div class="panel-b" style="padding:0">
+        <table class="wide" id="thirdTable"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- BRACKET -->
+  <section class="view hide" id="view-bracket">
+    <div class="banner" id="bracketStatus"></div>
+    <div class="bracket-scroll">
+      <div class="bracket" id="bracket"></div>
+    </div>
+  </section>
+
+  <!-- SCHEDULE -->
+  <section class="view hide" id="view-schedule">
+    <div class="toolbar">
+      <div class="field"><select id="schedStage">
+        <option value="all">All stages</option>
+        <option value="group">Group stage</option>
+        <option value="ko">Knockout</option>
+      </select></div>
+      <div class="field"><select id="schedStatus">
+        <option value="all">All matches</option>
+        <option value="finished">Finished</option>
+        <option value="scheduled">Upcoming</option>
+      </select></div>
+    </div>
+    <div id="scheduleWrap"></div>
+  </section>
+
+  <footer class="app">
+    Built to the official FIFA World Cup 2026 regulations (48 teams · 12 groups · best-8 third-placed teams · Annex C R32 mapping).
+    Data shown is configurable via <code>CONFIG.API_URL</code>; demo dataset loaded when no API is set.
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* ════════════════════════════════════════════════════════════════════════
+   FIFA WORLD CUP 2026 TRACKER
+   Modular engines:  DataLayer · StandingsEngine · ThirdPlaceEngine ·
+                     QualificationEngine · KnockoutEngine · UI
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ---------- CONFIGURATION ----------
+   Three ways to feed scores, in priority order:
+   1. PROVIDER "thesportsdb"  → built-in live adapter (default, works in-browser).
+   2. API_URL                 → your own endpoint already in this app's JSON schema.
+   3. neither                 → the embedded fixtures load with no scores.
+   ------------------------------------------------------------------------- */
+const CONFIG = {
+  // --- Built-in live provider (recommended) ---
+  PROVIDER: "thesportsdb",          // "thesportsdb" | "" (turn off)
+  THESPORTSDB: {
+    KEY: "123",                     // free public test key; replace with your own if you have one
+    LEAGUE_ID: "4429",              // 4429 = FIFA World Cup (do not change)
+    SEASON: "2026",
+    // The free season endpoint is capped, so we pull per-round and merge.
+    // 1-3 = group matchdays; the rest are the knockout round codes
+    // (TheSportsDB: 125 = QF, 200 = Final; others are covered defensively).
+    ROUNDS: [1, 2, 3, 100, 110, 120, 125, 150, 160, 170, 180, 200]
+  },
+
+  // --- OR your own JSON endpoint in this app's native schema ---
+  API_URL: "",                      // if set, this takes precedence over PROVIDER
+
+  AUTO_REFRESH_MINUTES: 5
+};
+
+/* The 12 groups */
+const GROUPS = "ABCDEFGHIJKL".split("");
+
+/* ════════════════════════════════════════════════════════════════════════
+   ANNEX C — official mapping of qualifying third-place groups → R32 slots.
+   495 combinations. Each record is 16 chars: first 8 = sorted letters of the
+   groups whose 3rd-placed team qualified; next 8 = the 3rd-place group letter
+   that faces the winners of [A,B,D,E,G,I,K,L] in that order.
+   Stored as one concatenated string for compactness; parsed once at load.
+   Updating FIFA's mapping = replace this string only (no logic changes).
+   ════════════════════════════════════════════════════════════════════════ */
+const ANNEX_C_RAW = "EFGHIJKLEJIFHGLKDFGHIJKLHGIDJFLKDEGHIJKLEJIDHGLKDEFHIJKLEJIDHFLKDEFGIJKLEGIDJFLKDEFGHJKLEGJDHFLKDEFGHIKLEGIDHFLKDEFGHIJLEGJDHFLIDEFGHIJKEGJDHFIKCFGHIJKLHGICJFLKCEGHIJKLEJICHGLKCEFHIJKLEJICHFLKCEFGIJKLEGICJFLKCEFGHJKLEGJCHFLKCEFGHIKLEGICHFLKCEFGHIJLEGJCHFLICEFGHIJKEGJCHFIKCDGHIJKLHGICJDLKCDFHIJKLCJIDHFLKCDFGIJKLCGIDJFLKCDFGHJKLCGJDHFLKCDFGHIKLCGIDHFLKCDFGHIJLCGJDHFLICDFGHIJKCGJDHFIKCDEHIJKLEJICHDLKCDEGIJKLEGICJDLKCDEGHJKLEGJCHDLKCDEGHIKLEGICHDLKCDEGHIJLEGJCHDLICDEGHIJKEGJCHDIKCDEFIJKLCJEDIFLKCDEFHJKLCJEDHFLKCDEFHIKLCEIDHFLKCDEFHIJLCJEDHFLICDEFHIJKCJEDHFIKCDEFGJKLCGEDJFLKCDEFGIKLCGEDIFLKCDEFGIJLCGEDJFLICDEFGIJKCGEDJFIKCDEFGHKLCGEDHFLKCDEFGHJLCGJDHFLECDEFGHJKCGJDHFEKCDEFGHILCGEDHFLICDEFGHIKCGEDHFIKCDEFGHIJCGJDHFEIBFGHIJKLHJBFIGLKBEGHIJKLEJIBHGLKBEFHIJKLEJBFIHLKBEFGIJKLEJBFIGLKBEFGHJKLEJBFHGLKBEFGHIKLEGBFIHLKBEFGHIJLEJBFHGLIBEFGHIJKEJBFHGIKBDGHIJKLHJBDIGLKBDFHIJKLHJBDIFLKBDFGIJKLIGBDJFLKBDFGHJKLHGBDJFLKBDFGHIKLHGBDIFLKBDFGHIJLHGBDJFLIBDFGHIJKHGBDJFIKBDEHIJKLEJBDIHLKBDEGIJKLEJBDIGLKBDEGHJKLEJBDHGLKBDEGHIKLEGBDIHLKBDEGHIJLEJBDHGLIBDEGHIJKEJBDHGIKBDEFIJKLEJBDIFLKBDEFHJKLEJBDHFLKBDEFHIKLEIBDHFLKBDEFHIJLEJBDHFLIBDEFHIJKEJBDHFIKBDEFGJKLEGBDJFLKBDEFGIKLEGBDIFLKBDEFGIJLEGBDJFLIBDEFGIJKEGBDJFIKBDEFGHKLEGBDHFLKBDEFGHJLHGBDJFLEBDEFGHJKHGBDJFEKBDEFGHILEGBDHFLIBDEFGHIKEGBDHFIKBDEFGHIJHGBDJFEIBCGHIJKLHJBCIGLKBCFHIJKLHJBCIFLKBCFGIJKLIGBCJFLKBCFGHJKLHGBCJFLKBCFGHIKLHGBCIFLKBCFGHIJLHGBCJFLIBCFGHIJKHGBCJFIKBCEHIJKLEJBCIHLKBCEGIJKLEJBCIGLKBCEGHJKLEJBCHGLKBCEGHIKLEGBCIHLKBCEGHIJLEJBCHGLIBCEGHIJKEJBCHGIKBCEFIJKLEJBCIFLKBCEFHJKLEJBCHFLKBCEFHIKLEIBCHFLKBCEFHIJLEJBCHFLIBCEFHIJKEJBCHFIKBCEFGJKLEGBCJFLKBCEFGIKLEGBCIFLKBCEFGIJLEGBCJFLIBCEFGIJKEGBCJFIKBCEFGHKLEGBCHFLKBCEFGHJLHGBCJFLEBCEFGHJKHGBCJFEKBCEFGHILEGBCHFLIBCEFGHIKEGBCHFIKBCEFGHIJHGBCJFEIBCDHIJKLHJBCIDLKBCDGIJKLIGBCJDLKBCDGHJKLHGBCJDLKBCDGHIKLHGBCIDLKBCDGHIJLHGBCJDLIBCDGHIJKHGBCJDIKBCDFIJKLCJBDIFLKBCDFHJKLCJBDHFLKBCDFHIKLCIBDHFLKBCDFHIJLCJBDHFLIBCDFHIJKCJBDHFIKBCDFGJKLCGBDJFLKBCDFGIKLCGBDIFLKBCDFGIJLCGBDJFLIBCDFGIJKCGBDJFIKBCDFGHKLCGBDHFLKBCDFGHJLCGBDHFLJBCDFGHJKHGBCJFDKBCDFGHILCGBDHFLIBCDFGHIKCGBDHFIKBCDFGHIJHGBCJFDIBCDEIJKLEJBCIDLKBCDEHJKLEJBCHDLKBCDEHIKLEIBCHDLKBCDEHIJLEJBCHDLIBCDEHIJKEJBCHDIKBCDEGJKLEGBCJDLKBCDEGIKLEGBCIDLKBCDEGIJLEGBCJDLIBCDEGIJKEGBCJDIKBCDEGHKLEGBCHDLKBCDEGHJLHGBCJDLEBCDEGHJKHGBCJDEKBCDEGHILEGBCHDLIBCDEGHIKEGBCHDIKBCDEGHIJHGBCJDEIBCDEFJKLCJBDEFLKBCDEFIKLCEBDIFLKBCDEFIJLCJBDEFLIBCDEFIJKCJBDEFIKBCDEFHKLCEBDHFLKBCDEFHJLCJBDHFLEBCDEFHJKCJBDHFEKBCDEFHILCEBDHFLIBCDEFHIKCEBDHFIKBCDEFHIJCJBDHFEIBCDEFGKLCGBDEFLKBCDEFGJLCGBDJFLEBCDEFGJKCGBDJFEKBCDEFGILCGBDEFLIBCDEFGIKCGBDEFIKBCDEFGIJCGBDJFEIBCDEFGHLCGBDHFLEBCDEFGHKCGBDHFEKBCDEFGHJHGBCJFDEBCDEFGHICGBDHFEIAFGHIJKLHJIFAGLKAEGHIJKLEJIAHGLKAEFHIJKLEJIFAHLKAEFGIJKLEJIFAGLKAEFGHJKLEGJFAHLKAEFGHIKLEGIFAHLKAEFGHIJLEGJFAHLIAEFGHIJKEGJFAHIKADGHIJKLHJIDAGLKADFHIJKLHJIDAFLKADFGIJKLIGJDAFLKADFGHJKLHGJDAFLKADFGHIKLHGIDAFLKADFGHIJLHGJDAFLIADFGHIJKHGJDAFIKADEHIJKLEJIDAHLKADEGIJKLEJIDAGLKADEGHJKLEGJDAHLKADEGHIKLEGIDAHLKADEGHIJLEGJDAHLIADEGHIJKEGJDAHIKADEFIJKLEJIDAFLKADEFHJKLHJEDAFLKADEFHIKLHEIDAFLKADEFHIJLHJEDAFLIADEFHIJKHJEDAFIKADEFGJKLEGJDAFLKADEFGIKLEGIDAFLKADEFGIJLEGJDAFLIADEFGIJKEGJDAFIKADEFGHKLHGEDAFLKADEFGHJLHGJDAFLEADEFGHJKHGJDAFEKADEFGHILHGEDAFLIADEFGHIKHGEDAFIKADEFGHIJHGJDAFEIACGHIJKLHJICAGLKACFHIJKLHJICAFLKACFGIJKLIGJCAFLKACFGHJKLHGJCAFLKACFGHIKLHGICAFLKACFGHIJLHGJCAFLIACFGHIJKHGJCAFIKACEHIJKLEJICAHLKACEGIJKLEJICAGLKACEGHJKLEGJCAHLKACEGHIKLEGICAHLKACEGHIJLEGJCAHLIACEGHIJKEGJCAHIKACEFIJKLEJICAFLKACEFHJKLHJECAFLKACEFHIKLHEICAFLKACEFHIJLHJECAFLIACEFHIJKHJECAFIKACEFGJKLEGJCAFLKACEFGIKLEGICAFLKACEFGIJLEGJCAFLIACEFGIJKEGJCAFIKACEFGHKLHGECAFLKACEFGHJLHGJCAFLEACEFGHJKHGJCAFEKACEFGHILHGECAFLIACEFGHIKHGECAFIKACEFGHIJHGJCAFEIACDHIJKLHJICADLKACDGIJKLIGJCADLKACDGHJKLHGJCADLKACDGHIKLHGICADLKACDGHIJLHGJCADLIACDGHIJKHGJCADIKACDFIJKLCJIDAFLKACDFHJKLHJFCADLKACDFHIKLHFICADLKACDFHIJLHJFCADLIACDFHIJKHJFCADIKACDFGJKLCGJDAFLKACDFGIKLCGIDAFLKACDFGIJLCGJDAFLIACDFGIJKCGJDAFIKACDFGHKLHGFCADLKACDFGHJLCGJDAFLHACDFGHJKHGJCAFDKACDFGHILHGFCADLIACDFGHIKHGFCADIKACDFGHIJHGJCAFDIACDEIJKLEJICADLKACDEHJKLHJECADLKACDEHIKLHEICADLKACDEHIJLHJECADLIACDEHIJKHJECADIKACDEGJKLEGJCADLKACDEGIKLEGICADLKACDEGIJLEGJCADLIACDEGIJKEGJCADIKACDEGHKLHGECADLKACDEGHJLHGJCADLEACDEGHJKHGJCADEKACDEGHILHGECADLIACDEGHIKHGECADIKACDEGHIJHGJCADEIACDEFJKLCJEDAFLKACDEFIKLCEIDAFLKACDEFIJLCJEDAFLIACDEFIJKCJEDAFIKACDEFHKLHEFCADLKACDEFHJLHJFCADLEACDEFHJKHJECAFDKACDEFHILHEFCADLIACDEFHIKHEFCADIKACDEFHIJHJECAFDIACDEFGKLCGEDAFLKACDEFGJLCGJDAFLEACDEFGJKCGJDAFEKACDEFGILCGEDAFLIACDEFGIKCGEDAFIKACDEFGIJCGJDAFEIACDEFGHLHGFCADLEACDEFGHKHGECAFDKACDEFGHJHGJCAFDEACDEFGHIHGECAFDIABGHIJKLHJBAIGLKABFHIJKLHJBAIFLKABFGIJKLIJBFAGLKABFGHJKLHJBFAGLKABFGHIKLHGBAIFLKABFGHIJLHJBFAGLIABFGHIJKHJBFAGIKABEHIJKLEJBAIHLKABEGIJKLEJBAIGLKABEGHJKLEJBAHGLKABEGHIKLEGBAIHLKABEGHIJLEJBAHGLIABEGHIJKEJBAHGIKABEFIJKLEJBAIFLKABEFHJKLEJBFAHLKABEFHIKLEIBFAHLKABEFHIJLEJBFAHLIABEFHIJKEJBFAHIKABEFGJKLEJBFAGLKABEFGIKLEGBAIFLKABEFGIJLEJBFAGLIABEFGIJKEJBFAGIKABEFGHKLEGBFAHLKABEFGHJLHJBFAGLEABEFGHJKHJBFAGEKABEFGHILEGBFAHLIABEFGHIKEGBFAHIKABEFGHIJHJBFAGEIABDHIJKLIJBDAHLKABDGIJKLIJBDAGLKABDGHJKLHJBDAGLKABDGHIKLIGBDAHLKABDGHIJLHJBDAGLIABDGHIJKHJBDAGIKABDFIJKLIJBDAFLKABDFHJKLHJBDAFLKABDFHIKLHIBDAFLKABDFHIJLHJBDAFLIABDFHIJKHJBDAFIKABDFGJKLFJBDAGLKABDFGIKLIGBDAFLKABDFGIJLFJBDAGLIABDFGIJKFJBDAGIKABDFGHKLHGBDAFLKABDFGHJLHGBDAFLJABDFGHJKHGBDAFJKABDFGHILHGBDAFLIABDFGHIKHGBDAFIKABDFGHIJHGBDAFIJABDEIJKLEJBAIDLKABDEHJKLEJBDAHLKABDEHIKLEIBDAHLKABDEHIJLEJBDAHLIABDEHIJKEJBDAHIKABDEGJKLEJBDAGLKABDEGIKLEGBAIDLKABDEGIJLEJBDAGLIABDEGIJKEJBDAGIKABDEGHKLEGBDAHLKABDEGHJLHJBDAGLEABDEGHJKHJBDAGEKABDEGHILEGBDAHLIABDEGHIKEGBDAHIKABDEGHIJHJBDAGEIABDEFJKLEJBDAFLKABDEFIKLEIBDAFLKABDEFIJLEJBDAFLIABDEFIJKEJBDAFIKABDEFHKLHEBDAFLKABDEFHJLHJBDAFLEABDEFHJKHJBDAFEKABDEFHILHEBDAFLIABDEFHIKHEBDAFIKABDEFHIJHJBDAFEIABDEFGKLEGBDAFLKABDEFGJLEGBDAFLJABDEFGJKEGBDAFJKABDEFGILEGBDAFLIABDEFGIKEGBDAFIKABDEFGIJEGBDAFIJABDEFGHLHGBDAFLEABDEFGHKHGBDAFEKABDEFGHJHGBDAFEJABDEFGHIHGBDAFEIABCHIJKLIJBCAHLKABCGIJKLIJBCAGLKABCGHJKLHJBCAGLKABCGHIKLIGBCAHLKABCGHIJLHJBCAGLIABCGHIJKHJBCAGIKABCFIJKLIJBCAFLKABCFHJKLHJBCAFLKABCFHIKLHIBCAFLKABCFHIJLHJBCAFLIABCFHIJKHJBCAFIKABCFGJKLCJBFAGLKABCFGIKLIGBCAFLKABCFGIJLCJBFAGLIABCFGIJKCJBFAGIKABCFGHKLHGBCAFLKABCFGHJLHGBCAFLJABCFGHJKHGBCAFJKABCFGHILHGBCAFLIABCFGHIKHGBCAFIKABCFGHIJHGBCAFIJABCEIJKLEJBAICLKABCEHJKLEJBCAHLKABCEHIKLEIBCAHLKABCEHIJLEJBCAHLIABCEHIJKEJBCAHIKABCEGJKLEJBCAGLKABCEGIKLEGBAICLKABCEGIJLEJBCAGLIABCEGIJKEJBCAGIKABCEGHKLEGBCAHLKABCEGHJLHJBCAGLEABCEGHJKHJBCAGEKABCEGHILEGBCAHLIABCEGHIKEGBCAHIKABCEGHIJHJBCAGEIABCEFJKLEJBCAFLKABCEFIKLEIBCAFLKABCEFIJLEJBCAFLIABCEFIJKEJBCAFIKABCEFHKLHEBCAFLKABCEFHJLHJBCAFLEABCEFHJKHJBCAFEKABCEFHILHEBCAFLIABCEFHIKHEBCAFIKABCEFHIJHJBCAFEIABCEFGKLEGBCAFLKABCEFGJLEGBCAFLJABCEFGJKEGBCAFJKABCEFGILEGBCAFLIABCEFGIKEGBCAFIKABCEFGIJEGBCAFIJABCEFGHLHGBCAFLEABCEFGHKHGBCAFEKABCEFGHJHGBCAFEJABCEFGHIHGBCAFEIABCDIJKLIJBCADLKABCDHJKLHJBCADLKABCDHIKLHIBCADLKABCDHIJLHJBCADLIABCDHIJKHJBCADIKABCDGJKLCJBDAGLKABCDGIKLIGBCADLKABCDGIJLCJBDAGLIABCDGIJKCJBDAGIKABCDGHKLHGBCADLKABCDGHJLHGBCADLJABCDGHJKHGBCADJKABCDGHILHGBCADLIABCDGHIKHGBCADIKABCDGHIJHGBCADIJABCDFJKLCJBDAFLKABCDFIKLCIBDAFLKABCDFIJLCJBDAFLIABCDFIJKCJBDAFIKABCDFHKLHFBCADLKABCDFHJLCJBDAFLHABCDFHJKHJBCAFDKABCDFHILHFBCADLIABCDFHIKHFBCADIKABCDFHIJHJBCAFDIABCDFGKLCGBDAFLKABCDFGJLCGBDAFLJABCDFGJKCGBDAFJKABCDFGILCGBDAFLIABCDFGIKCGBDAFIKABCDFGIJCGBDAFIJABCDFGHLCGBDAFLHABCDFGHKHGBCAFDKABCDFGHJHGBCAFDJABCDFGHIHGBCAFDIABCDEJKLEJBCADLKABCDEIKLEIBCADLKABCDEIJLEJBCADLIABCDEIJKEJBCADIKABCDEHKLHEBCADLKABCDEHJLHJBCADLEABCDEHJKHJBCADEKABCDEHILHEBCADLIABCDEHIKHEBCADIKABCDEHIJHJBCADEIABCDEGKLEGBCADLKABCDEGJLEGBCADLJABCDEGJKEGBCADJKABCDEGILEGBCADLIABCDEGIKEGBCADIKABCDEGIJEGBCADIJABCDEGHLHGBCADLEABCDEGHKHGBCADEKABCDEGHJHGBCADEJABCDEGHIHGBCADEIABCDEFKLCEBDAFLKABCDEFJLCJBDAFLEABCDEFJKCJBDAFEKABCDEFILCEBDAFLIABCDEFIKCEBDAFIKABCDEFIJCJBDAFEIABCDEFHLHFBCADLEABCDEFHKHEBCAFDKABCDEFHJHJBCAFDEABCDEFHIHEBCAFDIABCDEFGLCGBDAFLEABCDEFGKCGBDAFEKABCDEFGJCGBDAFEJABCDEFGICGBDAFEIABCDEFGHHGBCAFDE";
+const ANNEX_WINNER_ORDER = ["A","B","D","E","G","I","K","L"];
+const ANNEX_C = (() => {
+  const map = Object.create(null);
+  for (let i = 0; i < ANNEX_C_RAW.length; i += 16) {
+    const rec = ANNEX_C_RAW.substr(i, 16);
+    map[rec.slice(0, 8)] = rec.slice(8, 16);
+  }
+  return map;
+})();
+
+/* ════════════════════════════════════════════════════════════════════════
+   KNOCKOUT TEMPLATE — fixed bracket structure (FIFA schedule, matches 73–104).
+   Slot tokens:
+     1X / 2X      winner / runner-up of group X
+     T##          the 3rd-place team allocated to match ## (via Annex C)
+     W## / L##     winner / loser of knockout match ##
+   ════════════════════════════════════════════════════════════════════════ */
+const KO_TEMPLATE = {
+  // Round of 32
+  73:["2A","2B"], 74:["1E","T74"], 75:["1F","2C"], 76:["1C","2F"],
+  77:["1I","T77"], 78:["2E","2I"], 79:["1A","T79"], 80:["1L","T80"],
+  81:["1D","T81"], 82:["1G","T82"], 83:["2K","2L"], 84:["1H","2J"],
+  85:["1B","T85"], 86:["1J","2H"], 87:["1K","T87"], 88:["2D","2G"],
+  // Round of 16
+  89:["W74","W77"], 90:["W73","W75"], 91:["W76","W78"], 92:["W79","W80"],
+  93:["W83","W84"], 94:["W81","W82"], 95:["W86","W88"], 96:["W85","W87"],
+  // Quarter-finals
+  97:["W89","W90"], 98:["W93","W94"], 99:["W91","W92"], 100:["W95","W96"],
+  // Semi-finals
+  101:["W97","W98"], 102:["W99","W100"],
+  // Third place + Final
+  103:["L101","L102"], 104:["W101","W102"]
+};
+/* Which group winner each 3rd-place slot (T##) opposes — used to read Annex C */
+const THIRD_SLOT_WINNER = { T74:"E", T77:"I", T79:"A", T80:"L", T81:"D", T82:"G", T85:"B", T87:"K" };
+/* Render groupings (top→bottom bracket order) */
+const ROUND_LAYOUT = {
+  R32:[74,77,73,75,83,84,81,82,76,78,79,80,86,88,85,87],
+  R16:[89,90,93,94,91,92,95,96],
+  QF:[97,98,99,100],
+  SF:[101,102],
+  F:[104]
+};
+const STAGE_OF = (()=>{ const s={}; ROUND_LAYOUT.R32.forEach(n=>s[n]="Round of 32");
+  ROUND_LAYOUT.R16.forEach(n=>s[n]="Round of 16"); ROUND_LAYOUT.QF.forEach(n=>s[n]="Quarter-final");
+  ROUND_LAYOUT.SF.forEach(n=>s[n]="Semi-final"); s[103]="Third place"; s[104]="Final"; return s; })();
+
+/* ════════════════════════════════════════════════════════════════════════
+   DATA LAYER — fetches from API or falls back to embedded demo data.
+   Output contract: { teams:[{name,code,flag,group}],
+                      groupMatches:[{n,group,home,away,hs,as,status}],
+                      knockoutResults:{ "73":{hs,as,winner?} , ... } }
+   ════════════════════════════════════════════════════════════════════════ */
+const SAMPLE_DATA = {"teams": [{"name": "Mexico", "code": "MEX", "flag": "🇲🇽", "group": "A"}, {"name": "South Africa", "code": "RSA", "flag": "🇿🇦", "group": "A"}, {"name": "South Korea", "code": "KOR", "flag": "🇰🇷", "group": "A"}, {"name": "Czech Republic", "code": "CZE", "flag": "🇨🇿", "group": "A"}, {"name": "Canada", "code": "CAN", "flag": "🇨🇦", "group": "B"}, {"name": "Bosnia and Herzegovina", "code": "BIH", "flag": "🇧🇦", "group": "B"}, {"name": "Qatar", "code": "QAT", "flag": "🇶🇦", "group": "B"}, {"name": "Switzerland", "code": "SUI", "flag": "🇨🇭", "group": "B"}, {"name": "Brazil", "code": "BRA", "flag": "🇧🇷", "group": "C"}, {"name": "Morocco", "code": "MAR", "flag": "🇲🇦", "group": "C"}, {"name": "Haiti", "code": "HAI", "flag": "🇭🇹", "group": "C"}, {"name": "Scotland", "code": "SCO", "flag": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "group": "C"}, {"name": "United States", "code": "USA", "flag": "🇺🇸", "group": "D"}, {"name": "Paraguay", "code": "PAR", "flag": "🇵🇾", "group": "D"}, {"name": "Australia", "code": "AUS", "flag": "🇦🇺", "group": "D"}, {"name": "Turkey", "code": "TUR", "flag": "🇹🇷", "group": "D"}, {"name": "Germany", "code": "GER", "flag": "🇩🇪", "group": "E"}, {"name": "Curaçao", "code": "CUW", "flag": "🇨🇼", "group": "E"}, {"name": "Ivory Coast", "code": "CIV", "flag": "🇨🇮", "group": "E"}, {"name": "Ecuador", "code": "ECU", "flag": "🇪🇨", "group": "E"}, {"name": "Netherlands", "code": "NED", "flag": "🇳🇱", "group": "F"}, {"name": "Japan", "code": "JPN", "flag": "🇯🇵", "group": "F"}, {"name": "Sweden", "code": "SWE", "flag": "🇸🇪", "group": "F"}, {"name": "Tunisia", "code": "TUN", "flag": "🇹🇳", "group": "F"}, {"name": "Belgium", "code": "BEL", "flag": "🇧🇪", "group": "G"}, {"name": "Egypt", "code": "EGY", "flag": "🇪🇬", "group": "G"}, {"name": "Iran", "code": "IRN", "flag": "🇮🇷", "group": "G"}, {"name": "New Zealand", "code": "NZL", "flag": "🇳🇿", "group": "G"}, {"name": "Spain", "code": "ESP", "flag": "🇪🇸", "group": "H"}, {"name": "Cape Verde", "code": "CPV", "flag": "🇨🇻", "group": "H"}, {"name": "Saudi Arabia", "code": "KSA", "flag": "🇸🇦", "group": "H"}, {"name": "Uruguay", "code": "URU", "flag": "🇺🇾", "group": "H"}, {"name": "France", "code": "FRA", "flag": "🇫🇷", "group": "I"}, {"name": "Senegal", "code": "SEN", "flag": "🇸🇳", "group": "I"}, {"name": "Iraq", "code": "IRQ", "flag": "🇮🇶", "group": "I"}, {"name": "Norway", "code": "NOR", "flag": "🇳🇴", "group": "I"}, {"name": "Argentina", "code": "ARG", "flag": "🇦🇷", "group": "J"}, {"name": "Algeria", "code": "ALG", "flag": "🇩🇿", "group": "J"}, {"name": "Austria", "code": "AUT", "flag": "🇦🇹", "group": "J"}, {"name": "Jordan", "code": "JOR", "flag": "🇯🇴", "group": "J"}, {"name": "Portugal", "code": "POR", "flag": "🇵🇹", "group": "K"}, {"name": "DR Congo", "code": "COD", "flag": "🇨🇩", "group": "K"}, {"name": "Uzbekistan", "code": "UZB", "flag": "🇺🇿", "group": "K"}, {"name": "Colombia", "code": "COL", "flag": "🇨🇴", "group": "K"}, {"name": "England", "code": "ENG", "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "group": "L"}, {"name": "Croatia", "code": "CRO", "flag": "🇭🇷", "group": "L"}, {"name": "Ghana", "code": "GHA", "flag": "🇬🇭", "group": "L"}, {"name": "Panama", "code": "PAN", "flag": "🇵🇦", "group": "L"}], "groupMatches": [{"n": 1, "group": "A", "md": 1, "home": "MEX", "away": "RSA", "hs": null, "as": null, "status": "scheduled"}, {"n": 2, "group": "A", "md": 1, "home": "KOR", "away": "CZE", "hs": null, "as": null, "status": "scheduled"}, {"n": 3, "group": "A", "md": 2, "home": "MEX", "away": "KOR", "hs": null, "as": null, "status": "scheduled"}, {"n": 4, "group": "A", "md": 2, "home": "CZE", "away": "RSA", "hs": null, "as": null, "status": "scheduled"}, {"n": 5, "group": "A", "md": 3, "home": "CZE", "away": "MEX", "hs": null, "as": null, "status": "scheduled"}, {"n": 6, "group": "A", "md": 3, "home": "RSA", "away": "KOR", "hs": null, "as": null, "status": "scheduled"}, {"n": 7, "group": "B", "md": 1, "home": "CAN", "away": "BIH", "hs": null, "as": null, "status": "scheduled"}, {"n": 8, "group": "B", "md": 1, "home": "QAT", "away": "SUI", "hs": null, "as": null, "status": "scheduled"}, {"n": 9, "group": "B", "md": 2, "home": "CAN", "away": "QAT", "hs": null, "as": null, "status": "scheduled"}, {"n": 10, "group": "B", "md": 2, "home": "SUI", "away": "BIH", "hs": null, "as": null, "status": "scheduled"}, {"n": 11, "group": "B", "md": 3, "home": "SUI", "away": "CAN", "hs": null, "as": null, "status": "scheduled"}, {"n": 12, "group": "B", "md": 3, "home": "BIH", "away": "QAT", "hs": null, "as": null, "status": "scheduled"}, {"n": 13, "group": "C", "md": 1, "home": "BRA", "away": "MAR", "hs": null, "as": null, "status": "scheduled"}, {"n": 14, "group": "C", "md": 1, "home": "HAI", "away": "SCO", "hs": null, "as": null, "status": "scheduled"}, {"n": 15, "group": "C", "md": 2, "home": "BRA", "away": "HAI", "hs": null, "as": null, "status": "scheduled"}, {"n": 16, "group": "C", "md": 2, "home": "SCO", "away": "MAR", "hs": null, "as": null, "status": "scheduled"}, {"n": 17, "group": "C", "md": 3, "home": "SCO", "away": "BRA", "hs": null, "as": null, "status": "scheduled"}, {"n": 18, "group": "C", "md": 3, "home": "MAR", "away": "HAI", "hs": null, "as": null, "status": "scheduled"}, {"n": 19, "group": "D", "md": 1, "home": "USA", "away": "PAR", "hs": null, "as": null, "status": "scheduled"}, {"n": 20, "group": "D", "md": 1, "home": "AUS", "away": "TUR", "hs": null, "as": null, "status": "scheduled"}, {"n": 21, "group": "D", "md": 2, "home": "USA", "away": "AUS", "hs": null, "as": null, "status": "scheduled"}, {"n": 22, "group": "D", "md": 2, "home": "TUR", "away": "PAR", "hs": null, "as": null, "status": "scheduled"}, {"n": 23, "group": "D", "md": 3, "home": "TUR", "away": "USA", "hs": null, "as": null, "status": "scheduled"}, {"n": 24, "group": "D", "md": 3, "home": "PAR", "away": "AUS", "hs": null, "as": null, "status": "scheduled"}, {"n": 25, "group": "E", "md": 1, "home": "GER", "away": "CUW", "hs": null, "as": null, "status": "scheduled"}, {"n": 26, "group": "E", "md": 1, "home": "CIV", "away": "ECU", "hs": null, "as": null, "status": "scheduled"}, {"n": 27, "group": "E", "md": 2, "home": "GER", "away": "CIV", "hs": null, "as": null, "status": "scheduled"}, {"n": 28, "group": "E", "md": 2, "home": "ECU", "away": "CUW", "hs": null, "as": null, "status": "scheduled"}, {"n": 29, "group": "E", "md": 3, "home": "ECU", "away": "GER", "hs": null, "as": null, "status": "scheduled"}, {"n": 30, "group": "E", "md": 3, "home": "CUW", "away": "CIV", "hs": null, "as": null, "status": "scheduled"}, {"n": 31, "group": "F", "md": 1, "home": "NED", "away": "JPN", "hs": null, "as": null, "status": "scheduled"}, {"n": 32, "group": "F", "md": 1, "home": "SWE", "away": "TUN", "hs": null, "as": null, "status": "scheduled"}, {"n": 33, "group": "F", "md": 2, "home": "NED", "away": "SWE", "hs": null, "as": null, "status": "scheduled"}, {"n": 34, "group": "F", "md": 2, "home": "TUN", "away": "JPN", "hs": null, "as": null, "status": "scheduled"}, {"n": 35, "group": "F", "md": 3, "home": "TUN", "away": "NED", "hs": null, "as": null, "status": "scheduled"}, {"n": 36, "group": "F", "md": 3, "home": "JPN", "away": "SWE", "hs": null, "as": null, "status": "scheduled"}, {"n": 37, "group": "G", "md": 1, "home": "BEL", "away": "EGY", "hs": null, "as": null, "status": "scheduled"}, {"n": 38, "group": "G", "md": 1, "home": "IRN", "away": "NZL", "hs": null, "as": null, "status": "scheduled"}, {"n": 39, "group": "G", "md": 2, "home": "BEL", "away": "IRN", "hs": null, "as": null, "status": "scheduled"}, {"n": 40, "group": "G", "md": 2, "home": "NZL", "away": "EGY", "hs": null, "as": null, "status": "scheduled"}, {"n": 41, "group": "G", "md": 3, "home": "NZL", "away": "BEL", "hs": null, "as": null, "status": "scheduled"}, {"n": 42, "group": "G", "md": 3, "home": "EGY", "away": "IRN", "hs": null, "as": null, "status": "scheduled"}, {"n": 43, "group": "H", "md": 1, "home": "ESP", "away": "CPV", "hs": null, "as": null, "status": "scheduled"}, {"n": 44, "group": "H", "md": 1, "home": "KSA", "away": "URU", "hs": null, "as": null, "status": "scheduled"}, {"n": 45, "group": "H", "md": 2, "home": "ESP", "away": "KSA", "hs": null, "as": null, "status": "scheduled"}, {"n": 46, "group": "H", "md": 2, "home": "URU", "away": "CPV", "hs": null, "as": null, "status": "scheduled"}, {"n": 47, "group": "H", "md": 3, "home": "URU", "away": "ESP", "hs": null, "as": null, "status": "scheduled"}, {"n": 48, "group": "H", "md": 3, "home": "CPV", "away": "KSA", "hs": null, "as": null, "status": "scheduled"}, {"n": 49, "group": "I", "md": 1, "home": "FRA", "away": "SEN", "hs": null, "as": null, "status": "scheduled"}, {"n": 50, "group": "I", "md": 1, "home": "IRQ", "away": "NOR", "hs": null, "as": null, "status": "scheduled"}, {"n": 51, "group": "I", "md": 2, "home": "FRA", "away": "IRQ", "hs": null, "as": null, "status": "scheduled"}, {"n": 52, "group": "I", "md": 2, "home": "NOR", "away": "SEN", "hs": null, "as": null, "status": "scheduled"}, {"n": 53, "group": "I", "md": 3, "home": "NOR", "away": "FRA", "hs": null, "as": null, "status": "scheduled"}, {"n": 54, "group": "I", "md": 3, "home": "SEN", "away": "IRQ", "hs": null, "as": null, "status": "scheduled"}, {"n": 55, "group": "J", "md": 1, "home": "ARG", "away": "ALG", "hs": null, "as": null, "status": "scheduled"}, {"n": 56, "group": "J", "md": 1, "home": "AUT", "away": "JOR", "hs": null, "as": null, "status": "scheduled"}, {"n": 57, "group": "J", "md": 2, "home": "ARG", "away": "AUT", "hs": null, "as": null, "status": "scheduled"}, {"n": 58, "group": "J", "md": 2, "home": "JOR", "away": "ALG", "hs": null, "as": null, "status": "scheduled"}, {"n": 59, "group": "J", "md": 3, "home": "JOR", "away": "ARG", "hs": null, "as": null, "status": "scheduled"}, {"n": 60, "group": "J", "md": 3, "home": "ALG", "away": "AUT", "hs": null, "as": null, "status": "scheduled"}, {"n": 61, "group": "K", "md": 1, "home": "POR", "away": "COD", "hs": null, "as": null, "status": "scheduled"}, {"n": 62, "group": "K", "md": 1, "home": "UZB", "away": "COL", "hs": null, "as": null, "status": "scheduled"}, {"n": 63, "group": "K", "md": 2, "home": "POR", "away": "UZB", "hs": null, "as": null, "status": "scheduled"}, {"n": 64, "group": "K", "md": 2, "home": "COL", "away": "COD", "hs": null, "as": null, "status": "scheduled"}, {"n": 65, "group": "K", "md": 3, "home": "COL", "away": "POR", "hs": null, "as": null, "status": "scheduled"}, {"n": 66, "group": "K", "md": 3, "home": "COD", "away": "UZB", "hs": null, "as": null, "status": "scheduled"}, {"n": 67, "group": "L", "md": 1, "home": "ENG", "away": "CRO", "hs": null, "as": null, "status": "scheduled"}, {"n": 68, "group": "L", "md": 1, "home": "GHA", "away": "PAN", "hs": null, "as": null, "status": "scheduled"}, {"n": 69, "group": "L", "md": 2, "home": "ENG", "away": "GHA", "hs": null, "as": null, "status": "scheduled"}, {"n": 70, "group": "L", "md": 2, "home": "PAN", "away": "CRO", "hs": null, "as": null, "status": "scheduled"}, {"n": 71, "group": "L", "md": 3, "home": "PAN", "away": "ENG", "hs": null, "as": null, "status": "scheduled"}, {"n": 72, "group": "L", "md": 3, "home": "CRO", "away": "GHA", "hs": null, "as": null, "status": "scheduled"}], "knockoutResults": {}};
+
+const DataLayer = {
+  lastSource: "demo",
+  lastError: null,
+
+  async load() {
+    // 1) Custom raw-schema endpoint wins if configured
+    if (CONFIG.API_URL) {
+      try {
+        const res = await fetch(CONFIG.API_URL, { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const json = await res.json();
+        this.lastSource = "api"; this.lastError = null;
+        return this.normalize(json);
+      } catch (err) {
+        this.lastError = err.message || String(err);
+        this.lastSource = State.raw ? "api-stale" : "demo-fallback";
+        return State.raw || this.normalize(SAMPLE_DATA);
+      }
+    }
+    // 2) Built-in TheSportsDB live adapter — fetch every round and merge,
+    //    because the free season endpoint is capped at ~15 events.
+    if (CONFIG.PROVIDER === "thesportsdb") {
+      try {
+        const t = CONFIG.THESPORTSDB;
+        const rounds = t.ROUNDS && t.ROUNDS.length ? t.ROUNDS : [1,2,3];
+        const reqs = rounds.map(r =>
+          fetch(`https://www.thesportsdb.com/api/v1/json/${t.KEY}/eventsround.php?id=${t.LEAGUE_ID}&r=${r}&s=${t.SEASON}`,
+                { cache: "no-store" })
+            .then(res => res.ok ? res.json() : { events: null })
+            .catch(() => ({ events: null }))            // tolerate a single round failing
+        );
+        const parts = await Promise.all(reqs);
+        // merge + de-duplicate events across rounds
+        const seen = new Set(), events = [];
+        parts.forEach(p => (p && p.events ? p.events : []).forEach(ev => {
+          const id = ev.idEvent || (ev.strHomeTeam + "|" + ev.strAwayTeam + "|" + ev.dateEvent);
+          if (!seen.has(id)) { seen.add(id); events.push(ev); }
+        }));
+        if (!events.length) throw new Error("no events returned");
+        const data = this.fromTheSportsDB({ events });
+        this.lastSource = "thesportsdb"; this.lastError = null;
+        this.lastCount = events.length;
+        return data;
+      } catch (err) {
+        this.lastError = err.message || String(err);
+        this.lastSource = State.raw ? "live-stale" : "fixtures-only";
+        return State.raw || this.normalize(SAMPLE_DATA);
+      }
+    }
+    // 3) No provider: embedded fixtures, scores blank
+    this.lastSource = "fixtures-only"; this.lastError = null;
+    return this.normalize(SAMPLE_DATA);
+  },
+
+  /* Defensive normalisation so the engines never crash on partial feeds */
+  normalize(d) {
+    d = d || {};
+    const teams = (d.teams || []).map(t => ({
+      name: t.name || t.code || "—",
+      code: t.code || t.name || "—",
+      flag: t.flag || "🏳️",
+      group: (t.group || "").toUpperCase()
+    }));
+    const groupMatches = (d.groupMatches || d.matches || []).map((m, i) => ({
+      n: m.n != null ? m.n : i + 1,
+      md: m.md != null ? m.md : null,
+      group: (m.group || "").toUpperCase(),
+      home: m.home, away: m.away,
+      hs: numOrNull(m.hs != null ? m.hs : m.homeScore),
+      as: numOrNull(m.as != null ? m.as : m.awayScore),
+      status: m.status || ((m.hs != null || m.homeScore != null) ? "finished" : "scheduled")
+    }));
+    const knockoutResults = d.knockoutResults || {};
+    const knockoutEvents = d.knockoutEvents || [];
+    return { teams, groupMatches, knockoutResults, knockoutEvents };
+  },
+
+  /* ---- TheSportsDB adapter ----
+     Overlays live scores onto the known fixtures by matching team pairs, so it
+     never depends on the provider's group/round labelling being perfect.
+     Knockout fixtures are emitted as `knockoutEvents` (team-pair + score) and
+     resolved against the generated bracket later in recompute(). */
+  fromTheSportsDB(json) {
+    const base = this.normalize(SAMPLE_DATA);           // real teams + fixtures, no scores
+    const events = (json && json.events) || [];
+    const resolve = makeNameResolver(base.teams);        // API team name -> internal code
+
+    // index group fixtures by unordered code-pair for O(1) overlay
+    const fixIndex = {};
+    base.groupMatches.forEach(m => { fixIndex[pairKey(m.home, m.away)] = m; });
+
+    const koEvents = [];
+    events.forEach(ev => {
+      const hc = resolve(ev.strHomeTeam), ac = resolve(ev.strAwayTeam);
+      if (!hc || !ac) return;                            // unknown team -> skip safely
+      const hs = numOrNull(ev.intHomeScore), as = numOrNull(ev.intAwayScore);
+      const st = mapStatus(ev.strStatus, hs, as);
+      const fx = fixIndex[pairKey(hc, ac)];
+      if (fx) {                                          // group-stage match
+        if (hs == null || as == null) return;
+        // assign scores respecting each fixture's own home/away orientation
+        if (fx.home === hc) { fx.hs = hs; fx.as = as; }
+        else { fx.hs = as; fx.as = hs; }
+        fx.status = st;
+        fx.date = ev.dateEvent || fx.date;
+      } else if (hs != null && as != null) {             // knockout match
+        koEvents.push({ home: hc, away: ac, hs, as, status: ev.strStatus || "",
+                        round: +ev.intRound || 0 });
+      }
+    });
+    base.knockoutEvents = koEvents;
+    return base;
+  }
+};
+function numOrNull(v){ return (v===null||v===undefined||v==="") ? null : Number(v); }
+function pairKey(a,b){ return [a,b].sort().join("|"); }
+/* Map provider status codes to the app's match status */
+function mapStatus(s, hs, as){
+  s = (s||"").toUpperCase();
+  if (["FT","AET","PEN","AP","MATCH FINISHED"].includes(s)) return "finished";
+  if (["NS","NOT STARTED",""].includes(s)) return (hs!=null&&as!=null) ? "finished" : "scheduled";
+  if (["1H","2H","HT","ET","BT","P","LIVE"].includes(s)) return "live";
+  return (hs!=null&&as!=null) ? "finished" : "scheduled";
+}
+/* Build a tolerant "team name -> internal code" resolver.
+   Handles accents, punctuation and the common naming variants between feeds. */
+function makeNameResolver(teams){
+  const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")
+                     .replace(/[^a-z]/g,"");
+  const idx = {};
+  teams.forEach(t => { idx[norm(t.name)] = t.code; idx[norm(t.code)] = t.code; });
+  const alias = {
+    usa:"USA", unitedstates:"USA", unitedstatesofamerica:"USA",
+    bosniaherzegovina:"BIH", bosniaandherzegovina:"BIH",
+    southkorea:"KOR", korearepublic:"KOR", korea:"KOR",
+    ivorycoast:"CIV", cotedivoire:"CIV",
+    capeverde:"CPV", caboverde:"CPV",
+    czechrepublic:"CZE", czechia:"CZE",
+    turkey:"TUR", turkiye:"TUR",
+    drcongo:"COD", congodr:"COD", democraticrepublicofthecongo:"COD", congodemocraticrepublic:"COD",
+    iran:"IRN", iriran:"IRN", islamicrepublicofiran:"IRN",
+    saudiarabia:"KSA",
+    curacao:"CUW"
+  };
+  Object.keys(alias).forEach(k => { if (teams.some(t=>t.code===alias[k])) idx[k]=alias[k]; });
+  return name => idx[norm(name)] || null;
+}
+/* Resolve provider knockout events onto the generated bracket.
+   Iterates so later rounds resolve once earlier winners are known. */
+function knockoutEventsToResults(qual, koEvents){
+  const results = {};
+  if (!koEvents || !koEvents.length) return results;
+  for (let pass = 0; pass < 6; pass++){
+    const ko = KnockoutEngine.build(qual, results);
+    let added = false;
+    koEvents.forEach(ev => {
+      const hit = Object.values(ko.ties).find(t =>
+        t.home && t.away && pairKey(t.home,t.away) === pairKey(ev.home,ev.away));
+      if (hit && !(hit.n in results)){
+        let winner = null;
+        if (ev.hs > ev.as) winner = hit.home === ev.home ? ev.home : ev.away;
+        else if (ev.hs < ev.as) winner = hit.home === ev.home ? ev.away : ev.home;
+        else if (/PEN|AP/i.test(ev.status)) winner = null; // shootout winner unknown from feed
+        const hs = hit.home === ev.home ? ev.hs : ev.as;
+        const as = hit.home === ev.home ? ev.as : ev.hs;
+        results[hit.n] = { hs, as, winner };
+        added = true;
+      }
+    });
+    if (!added) break;
+  }
+  return results;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   STANDINGS ENGINE — computes a group table from finished matches.
+   FIFA tiebreakers applied: 1) Points  2) Goal Difference  3) Goals For
+   (stable alphabetical fallback keeps ordering deterministic).
+   ════════════════════════════════════════════════════════════════════════ */
+const StandingsEngine = {
+  blankRow(t){ return {code:t.code,name:t.name,flag:t.flag,group:t.group,
+    P:0,W:0,D:0,L:0,GF:0,GA:0,GD:0,Pts:0}; },
+  computeGroup(group, data){
+    const rows = {};
+    data.teams.filter(t=>t.group===group).forEach(t=>rows[t.code]=this.blankRow(t));
+    data.groupMatches.forEach(m=>{
+      if(m.group!==group) return;
+      if(m.status!=="finished" || m.hs===null || m.as===null) return;
+      const h=rows[m.home], a=rows[m.away];
+      if(!h||!a) return;
+      h.P++; a.P++; h.GF+=m.hs; h.GA+=m.as; a.GF+=m.as; a.GA+=m.hs;
+      if(m.hs>m.as){ h.W++; a.L++; h.Pts+=3; }
+      else if(m.hs<m.as){ a.W++; h.L++; a.Pts+=3; }
+      else { h.D++; a.D++; h.Pts++; a.Pts++; }
+    });
+    const list=Object.values(rows);
+    list.forEach(r=>r.GD=r.GF-r.GA);
+    list.sort(this.compare);
+    list.forEach((r,i)=>r.pos=i+1);
+    return list;
+  },
+  compare(a,b){
+    if(b.Pts!==a.Pts) return b.Pts-a.Pts;
+    if(b.GD!==a.GD)   return b.GD-a.GD;
+    if(b.GF!==a.GF)   return b.GF-a.GF;
+    return a.code.localeCompare(b.code);
+  },
+  computeAll(data){
+    const all={};
+    GROUPS.forEach(g=>all[g]=this.computeGroup(g,data));
+    return all;
+  },
+  /* a group is "complete" when every team has played 3 matches */
+  isComplete(table){ return table.length===4 && table.every(r=>r.P>=3); }
+};
+
+/* ════════════════════════════════════════════════════════════════════════
+   THIRD-PLACE RANKING ENGINE — ranks the 12 third-placed teams.
+   Same tiebreakers: Points → GD → Goals For.
+   ════════════════════════════════════════════════════════════════════════ */
+const ThirdPlaceEngine = {
+  rank(standings){
+    const thirds=[];
+    GROUPS.forEach(g=>{
+      const t=standings[g];
+      if(t && t[2]) thirds.push(Object.assign({group:g},t[2]));
+    });
+    thirds.sort(StandingsEngine.compare);
+    thirds.forEach((r,i)=>{ r.rank=i+1; r.qualified = i<8; });
+    return thirds;
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════════════
+   QUALIFICATION ENGINE — ties the pieces together.
+   Produces winners, runners-up, the ranked thirds, the 8 qualifying third
+   groups, and the Annex-C allocation of those thirds to R32 slots.
+   ════════════════════════════════════════════════════════════════════════ */
+const QualificationEngine = {
+  resolve(data){
+    const standings = StandingsEngine.computeAll(data);
+    const winners={}, runners={}, thirdByGroup={};
+    GROUPS.forEach(g=>{
+      const t=standings[g];
+      winners[g]  = t[0] ? t[0].code : null;
+      runners[g]  = t[1] ? t[1].code : null;
+      thirdByGroup[g] = t[2] ? t[2].code : null;
+    });
+    const thirdsRanked = ThirdPlaceEngine.rank(standings);
+
+    // Best-8 third-placed teams by CURRENT ranking. Computed live (provisionally)
+    // during the group stage and locked once all 12 groups are complete — either
+    // way it always reflects the latest standings, so the bracket re-seeds itself
+    // whenever a position changes in a group table or the third-place ranking.
+    const groupsComplete = GROUPS.every(g=>StandingsEngine.isComplete(standings[g]));
+    const anyPlayed = data.groupMatches.some(m=>m.status==="finished" || m.status==="live");
+    const qualifiedThirds = thirdsRanked.filter(t=>t.qualified);
+    const qualGroups = qualifiedThirds.map(t=>t.group).sort();
+    const key = qualGroups.join("");
+
+    // Annex-C lookup → assign each 3rd-place R32 slot its (current) team code.
+    let thirdSlots = {};            // { T74: code, ... }
+    let mappingFound = false;
+    if (anyPlayed && qualGroups.length===8 && ANNEX_C[key]) {
+      mappingFound = true;
+      const assign = ANNEX_C[key];  // chars align to ANNEX_WINNER_ORDER
+      const thirdForWinner = {};
+      ANNEX_WINNER_ORDER.forEach((w,i)=> thirdForWinner[w]=assign[i]);
+      Object.keys(THIRD_SLOT_WINNER).forEach(slot=>{
+        const grpLetter = thirdForWinner[THIRD_SLOT_WINNER[slot]];
+        thirdSlots[slot] = thirdByGroup[grpLetter];
+      });
+    }
+
+    return {
+      standings, winners, runners, thirdByGroup,
+      thirdsRanked, qualifiedThirds, qualGroups, mappingKey:key,
+      thirdSlots, mappingFound, groupsComplete,
+      provisional: mappingFound && !groupsComplete
+    };
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════════════
+   KNOCKOUT BRACKET ENGINE — resolves every slot token and advances winners.
+   Pure function of (qualification result + knockout results). Memoised slots
+   prevent duplicated work; unresolved slots return null (TBD) so the bracket
+   keeps rendering while matches are still pending.
+   ════════════════════════════════════════════════════════════════════════ */
+const KnockoutEngine = {
+  build(qual, koResults){
+    const cache = {};
+    const ties = {};
+
+    const matchResult = n => koResults[n] || koResults[String(n)] || null;
+
+    function winnerOf(n){
+      const r=matchResult(n); if(!r) return null;
+      if(r.winner) return r.winner;
+      const [h,a]=resolveTie(n);
+      if(r.hs==null||r.as==null||h==null||a==null) return null;
+      if(r.hs>r.as) return h;
+      if(r.hs<r.as) return a;
+      return null; // level & no winner specified → undecided (penalties unknown)
+    }
+    function loserOf(n){
+      const w=winnerOf(n); if(!w) return null;
+      const [h,a]=resolveTie(n);
+      return w===h ? a : (w===a ? h : null);
+    }
+    /* resolve a single slot token → team code or null */
+    function slot(tok){
+      if(tok in cache) return cache[tok];
+      let v=null;
+      const k=tok[0];
+      if(k==="1") v=qual.winners[tok[1]];
+      else if(k==="2") v=qual.runners[tok[1]];
+      else if(k==="T") v=qual.thirdSlots[tok] || null;
+      else if(k==="W") v=winnerOf(+tok.slice(1));
+      else if(k==="L") v=loserOf(+tok.slice(1));
+      cache[tok]=v; return v;
+    }
+    function resolveTie(n){
+      const [x,y]=KO_TEMPLATE[n];
+      return [slot(x), slot(y)];
+    }
+
+    Object.keys(KO_TEMPLATE).forEach(n=>{
+      n=+n;
+      const [hTok,aTok]=KO_TEMPLATE[n];
+      const home=slot(hTok), away=slot(aTok);
+      const r=matchResult(n);
+      const w=winnerOf(n);
+      ties[n]={
+        n, stage:STAGE_OF[n], homeTok:hTok, awayTok:aTok,
+        home, away,
+        hs: r? r.hs : null, as: r? r.as : null,
+        winner:w, penalties: r && r.penalties ? r.penalties : null,
+        played: !!r
+      };
+    });
+    return { ties, champion: winnerOf(104) };
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════════════
+   GLOBAL STATE + helpers
+   ════════════════════════════════════════════════════════════════════════ */
+const State = { raw:null, qual:null, ko:null, teamIndex:{}, view:"groups",
+  search:"", groupFilter:"", lastUpdated:null, timer:null };
+
+function teamMeta(code){ return State.teamIndex[code] || {name:code,flag:"🏳️",code}; }
+function fmtTeam(code, withFlag=true){
+  if(!code) return null;
+  const t=teamMeta(code);
+  return (withFlag? t.flag+" " : "") + t.name;
+}
+const $ = s=>document.querySelector(s);
+const $$ = s=>Array.from(document.querySelectorAll(s));
+
+/* ════════════════════════════════════════════════════════════════════════
+   UI RENDERING LAYER
+   ════════════════════════════════════════════════════════════════════════ */
+const UI = {
+  /* ---- master render ---- */
+  renderAll(){
+    this.renderGroups();
+    this.renderThirds();
+    this.renderBracket();
+    this.renderSchedule();
+    this.renderTabBadges();
+  },
+
+  renderTabBadges(){
+    const q=State.qual;
+    const done=GROUPS.filter(g=>StandingsEngine.isComplete(q.standings[g])).length;
+    // (kept lightweight; could surface counts if desired)
+  },
+
+  /* ---------- View 1: Groups ---------- */
+  renderGroups(){
+    const grid=$("#groupGrid"); grid.innerHTML="";
+    const q=State.qual;
+    const search=State.search.toLowerCase().trim();
+    GROUPS.forEach(g=>{
+      if(State.groupFilter && State.groupFilter!==g) return;
+      const table=q.standings[g];
+      const complete=StandingsEngine.isComplete(table);
+      const card=document.createElement("div");
+      card.className="card"; card.dataset.group=g;
+
+      let rows="";
+      table.forEach(r=>{
+        const isQ = r.pos<=2;
+        const is3 = r.pos===3;
+        const elim = r.pos===4 || (complete && is3 && !this._thirdQualifies(r.code));
+        let cls = isQ?"row-q": is3?"row-3":"row-e";
+        let bar = isQ? (r.pos===1?"w":"q") : is3? "t" : "x";
+        const hit = search && (r.name.toLowerCase().includes(search)||r.code.toLowerCase().includes(search));
+        rows += `<tr class="${cls} ${hit?'hl':''}" data-code="${r.code}">
+          <td class="pos"><span class="qbar ${bar}"></span> ${r.pos}</td>
+          <td class="team"><span class="flag">${r.flag}</span>${r.name}</td>
+          <td>${r.P}</td><td>${r.W}</td><td>${r.D}</td><td>${r.L}</td>
+          <td>${r.GF}</td><td>${r.GA}</td><td>${r.GD>0?'+':''}${r.GD}</td>
+          <td class="pts">${r.Pts}</td></tr>`;
+      });
+
+      card.innerHTML=`
+        <div class="card-head">
+          <span class="gtag">${g}</span><h3>Group ${g}</h3>
+          <span class="state">${complete?'Complete':'In progress'}</span>
+          <span class="chev">▾</span>
+        </div>
+        <div class="card-body">
+          <table class="tbl">
+            <thead><tr>
+              <th class="pos">#</th><th style="text-align:left">Team</th>
+              <th title="Played">P</th><th title="Won">W</th><th title="Drawn">D</th><th title="Lost">L</th>
+              <th title="Goals For">GF</th><th title="Goals Against">GA</th><th title="Goal Diff">GD</th><th>Pts</th>
+            </tr></thead><tbody>${rows}</tbody>
+          </table>
+        </div>`;
+      card.querySelector(".card-head").addEventListener("click",()=>card.classList.toggle("collapsed"));
+      grid.appendChild(card);
+    });
+    if(!grid.children.length) grid.innerHTML=`<div class="empty">No groups match your filter.</div>`;
+  },
+  _thirdQualifies(code){
+    return State.qual.qualifiedThirds.some(t=>t.code===code);
+  },
+
+  /* ---------- View 2: Third-place ---------- */
+  renderThirds(){
+    const q=State.qual;
+    const tbl=$("#thirdTable");
+    let head=`<thead><tr><th class="rankn">Rank</th><th style="text-align:left">Team</th>
+      <th>Group</th><th>Pts</th><th>GD</th><th>GF</th><th>Status</th></tr></thead>`;
+    let body="";
+    q.thirdsRanked.forEach(t=>{
+      const cut = t.rank===8 ? "cut":"";
+      body+=`<tr class="${t.qualified?'q-row':''} ${cut}" data-code="${t.code}">
+        <td class="rankn">${t.rank}</td>
+        <td class="team">${t.flag} ${t.name}</td>
+        <td><strong>${t.group}</strong></td>
+        <td><strong>${t.Pts}</strong></td>
+        <td>${t.GD>0?'+':''}${t.GD}</td>
+        <td>${t.GF}</td>
+        <td>${ t.qualified ? '<span class="tag q">Qualified</span>' : '<span class="tag e">Eliminated</span>'}</td>
+      </tr>`;
+    });
+    tbl.innerHTML=head+"<tbody>"+body+"</tbody>";
+    if(!q.thirdsRanked.length) tbl.innerHTML=`<tbody><tr><td class="empty">No third-placed teams yet.</td></tr></tbody>`;
+  },
+
+  /* ---------- View 3: Bracket ---------- */
+  renderBracket(){
+    const q=State.qual, ko=State.ko;
+    const wrap=$("#bracket"); wrap.innerHTML="";
+
+    // status banner
+    const sb=$("#bracketStatus");
+    if(q.provisional){
+      sb.className="banner warn";
+      sb.innerHTML=`🔄 <strong>Live projection.</strong> Winners, runners-up and the best-8 third-placed teams are seeded from the <em>current</em> standings and re-shuffle automatically whenever a position changes. Current qualifying third-place groups: <strong>${q.qualGroups.join(", ")}</strong>. Locks when all 12 groups finish.`;
+    } else if(q.groupsComplete && q.mappingFound){
+      sb.className="banner";
+      sb.innerHTML=`✅ <strong>Bracket locked.</strong> Qualifying third-place groups: <strong>${q.qualGroups.join(", ")}</strong> · Annex C key <code>${q.mappingKey}</code>.`;
+    } else {
+      sb.className="banner warn";
+      sb.innerHTML=`⏳ Awaiting results — the bracket seeds itself from the standings as soon as group matches are played.`;
+    }
+
+    const colDefs=[
+      ["Round of 32",ROUND_LAYOUT.R32],
+      ["Round of 16",ROUND_LAYOUT.R16],
+      ["Quarter-finals",ROUND_LAYOUT.QF],
+      ["Semi-finals",ROUND_LAYOUT.SF],
+      ["Final",ROUND_LAYOUT.F]
+    ];
+    colDefs.forEach(([title,nums])=>{
+      const col=document.createElement("div"); col.className="round";
+      col.innerHTML=`<div class="round-title">${title}</div>`;
+      nums.forEach(n=> col.appendChild(this._tie(ko.ties[n], n===104)));
+      // append champion + 3rd-place under the Final column
+      if(title==="Final"){
+        const champ=document.createElement("div"); champ.className="champ";
+        champ.innerHTML=`<div class="ttl">🏆 Champion</div>
+          <div class="who">${ ko.champion ? fmtTeam(ko.champion) : '—' }</div>`;
+        col.appendChild(champ);
+        const tp=this._tie(ko.ties[103],false);
+        const lbl=document.createElement("div");
+        lbl.className="round-title"; lbl.style.marginTop="14px"; lbl.textContent="Third place";
+        col.appendChild(lbl); col.appendChild(tp);
+      }
+      wrap.appendChild(col);
+    });
+  },
+  _slotTok(tok){
+    // Friendly placeholder for an unresolved slot
+    if(tok[0]==="1") return "Winner "+tok[1];
+    if(tok[0]==="2") return "Runner-up "+tok[1];
+    if(tok[0]==="T") return "3rd place";
+    if(tok[0]==="W") return "Winner M"+tok.slice(1);
+    if(tok[0]==="L") return "Loser M"+tok.slice(1);
+    return tok;
+  },
+  _tie(t,isFinal){
+    const el=document.createElement("div");
+    el.className="tie"+(isFinal?" final-tie":"");
+    el.innerHTML=`<span class="mno">M${t.n}</span>`+
+      this._slot(t.home,t.homeTok,t.hs,t.winner)+
+      this._slot(t.away,t.awayTok,t.as,t.winner);
+    return el;
+  },
+  _slot(code,tok,score,winner){
+    const tbd=!code;
+    const isWin = code && winner && code===winner;
+    const name = tbd ? this._slotTok(tok) : teamMeta(code).name;
+    const flag = tbd ? "" : teamMeta(code).flag;
+    const third = tok && tok[0]==="T" && !tbd;   // a best-third-place qualifier
+    return `<div class="slot ${isWin?'win':''} ${tbd?'tbd':''}">
+      <span class="sflag">${flag}</span>
+      <span class="sname">${name}${third?' <span class="s3rd" title="Best third-placed team">3rd</span>':''}</span>
+      <span class="sscore">${score==null?'':score}</span>
+    </div>`;
+  },
+
+  /* ---------- View 4: Schedule ---------- */
+  renderSchedule(){
+    const wrap=$("#scheduleWrap");
+    const stage=$("#schedStage").value;
+    const status=$("#schedStatus").value;
+    let html="";
+
+    if(stage==="all"||stage==="group"){
+      GROUPS.forEach(g=>{
+        const ms=State.raw.groupMatches.filter(m=>m.group===g)
+          .filter(m=>status==="all"||m.status===status);
+        if(!ms.length) return;
+        // group fixtures by matchday when md is present
+        const byMd={};
+        ms.forEach(m=>{ const k=m.md||0; (byMd[k]=byMd[k]||[]).push(m); });
+        Object.keys(byMd).sort().forEach(k=>{
+          const label = k!=="0" ? `Group ${g} · Matchday ${k}` : `Group ${g}`;
+          html+=`<div class="sched-group">${label}</div><div class="sched-list">`;
+          byMd[k].sort((a,b)=>a.n-b.n).forEach(m=>html+=this._matchRow(m));
+          html+="</div>";
+        });
+      });
+    }
+    if(stage==="all"||stage==="ko"){
+      const order=[...ROUND_LAYOUT.R32,...ROUND_LAYOUT.R16,...ROUND_LAYOUT.QF,...ROUND_LAYOUT.SF,103,104];
+      let curStage=null, open=false;
+      order.forEach(n=>{
+        const t=State.ko.ties[n];
+        const st = t.played?"finished":"scheduled";
+        if(status!=="all" && status!==st) return;
+        if(t.stage!==curStage){
+          if(open) html+="</div>";
+          html+=`<div class="sched-group">${t.stage}</div><div class="sched-list">`;
+          curStage=t.stage; open=true;
+        }
+        html+=this._koRow(t);
+      });
+      if(open) html+="</div>";
+    }
+    wrap.innerHTML = html || `<div class="empty">No matches match the current filters.</div>`;
+  },
+  _matchRow(m){
+    const fin=m.status==="finished" && m.hs!=null;
+    const winl=fin&&m.hs>m.as, winr=fin&&m.as>m.hs;
+    const h=teamMeta(m.home), a=teamMeta(m.away);
+    return `<div class="match ${winl?'winl':''} ${winr?'winr':''}">
+      <div class="mt home"><span>${h.flag}</span><span class="sname">${h.name}</span></div>
+      <div class="vs ${fin?'':'sched'}">${fin?(m.hs+' : '+m.as):'vs'}</div>
+      <div class="mt away"><span class="sname">${a.name}</span><span>${a.flag}</span></div>
+    </div>`;
+  },
+  _koRow(t){
+    const fin=t.played && t.hs!=null;
+    const winl=fin&&t.winner&&t.winner===t.home, winr=fin&&t.winner&&t.winner===t.away;
+    const hn = t.home? teamMeta(t.home):{flag:"",name:this._slotTok(t.homeTok)};
+    const an = t.away? teamMeta(t.away):{flag:"",name:this._slotTok(t.awayTok)};
+    return `<div class="match ${winl?'winl':''} ${winr?'winr':''}">
+      <div class="mt home"><span>${hn.flag}</span><span class="sname">${hn.name}</span></div>
+      <div class="vs ${fin?'':'sched'}">${fin?(t.hs+' : '+t.as):'M'+t.n}</div>
+      <div class="mt away"><span class="sname">${an.name}</span><span>${an.flag}</span></div>
+    </div>`;
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════════════
+   PIPELINE — recompute everything when data changes
+   ════════════════════════════════════════════════════════════════════════ */
+function recompute(){
+  State.qual = QualificationEngine.resolve(State.raw);
+  // merge any explicit knockoutResults with those derived from live KO events
+  const derived = knockoutEventsToResults(State.qual, State.raw.knockoutEvents);
+  const koResults = Object.assign({}, derived, State.raw.knockoutResults || {});
+  State.ko   = KnockoutEngine.build(State.qual, koResults);
+  UI.renderAll();
+}
+
+async function refresh(manual){
+  setLive("loading");
+  const data = await DataLayer.load();
+  State.raw = data;
+  State.teamIndex = {};
+  data.teams.forEach(t=>State.teamIndex[t.code]=t);
+  recompute();
+  State.lastUpdated = new Date();
+  $("#updatedAt").textContent = State.lastUpdated.toLocaleTimeString();
+  updateBanner();
+  setLive(DataLayer.lastError ? "error" : "ok");
+}
+
+function updateBanner(){
+  const b=$("#dataBanner");
+  const src=DataLayer.lastSource;
+  if(DataLayer.lastError){
+    b.className="banner warn"; b.classList.remove("hide");
+    const fb = (src==='fixtures-only') ? 'official fixtures with no scores'
+             : (src==='live-stale'||src==='api-stale') ? 'last known data'
+             : 'demo data';
+    b.innerHTML=`⚠️ Live feed unreachable (<code>${DataLayer.lastError}</code>) — showing ${fb}. `+
+      `If your browser is blocking the request (CORS), see the notes at the top of the file; auto-refresh will keep retrying every ${CONFIG.AUTO_REFRESH_MINUTES} min.`;
+  } else if(src==="thesportsdb"){
+    b.className="banner"; b.classList.remove("hide");
+    b.innerHTML=`🟢 <strong>Live from TheSportsDB</strong> — official 2026 results overlaid on the real fixtures. Standings, third-place ranking and the bracket recompute automatically; auto-refresh every ${CONFIG.AUTO_REFRESH_MINUTES} min.`;
+  } else if(src==="fixtures-only"){
+    b.className="banner"; b.classList.remove("hide");
+    b.innerHTML=`ℹ️ <strong>Official 2026 draw &amp; fixtures loaded</strong> — scores off. Set <code>CONFIG.PROVIDER="thesportsdb"</code> (or <code>CONFIG.API_URL</code>) to stream live results.`;
+  } else {
+    b.classList.add("hide");
+  }
+}
+
+function setLive(mode){
+  const dot=$("#liveDot"), txt=$("#liveText");
+  dot.className="dot"+(mode==="ok"?"":mode==="error"?" err":" idle");
+  txt.textContent = mode==="loading"?"Refreshing…":mode==="error"?"Offline":"Live";
+  if(mode==="loading") dot.className="dot";
+}
+
+/* ---- auto refresh ---- */
+function startAutoRefresh(){
+  if(State.timer) clearInterval(State.timer);
+  const ms=Math.max(1,CONFIG.AUTO_REFRESH_MINUTES)*60000;
+  State.timer=setInterval(()=>refresh(false), ms);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   CSV EXPORT
+   ════════════════════════════════════════════════════════════════════════ */
+function exportCSV(){
+  const rows=[["Group","Pos","Team","Code","P","W","D","L","GF","GA","GD","Pts","Status"]];
+  GROUPS.forEach(g=>{
+    State.qual.standings[g].forEach(r=>{
+      const status = r.pos<=2?"Qualified":(r.pos===3?(UI._thirdQualifies(r.code)?"Qualified (3rd)":"3rd - out"):"Eliminated");
+      rows.push([g,r.pos,r.name,r.code,r.P,r.W,r.D,r.L,r.GF,r.GA,r.GD,r.Pts,status]);
+    });
+  });
+  const csv=rows.map(r=>r.map(c=>{
+    const s=String(c); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+  }).join(",")).join("\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="wc2026_standings.csv";
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   EVENTS + INIT
+   ════════════════════════════════════════════════════════════════════════ */
+function switchView(v){
+  State.view=v;
+  $$(".tab").forEach(t=>t.classList.toggle("active",t.dataset.view===v));
+  $$(".view").forEach(s=>s.classList.toggle("hide",s.id!=="view-"+v));
+}
+
+function init(){
+  // group filter options
+  const gf=$("#groupFilter");
+  GROUPS.forEach(g=>{const o=document.createElement("option");o.value=g;o.textContent="Group "+g;gf.appendChild(o);});
+
+  // tabs
+  $("#tabs").addEventListener("click",e=>{
+    const t=e.target.closest(".tab"); if(t) switchView(t.dataset.view);
+  });
+
+  // toolbar
+  $("#searchInput").addEventListener("input",e=>{State.search=e.target.value;UI.renderGroups();});
+  $("#groupFilter").addEventListener("change",e=>{State.groupFilter=e.target.value;UI.renderGroups();});
+  $("#expandAll").addEventListener("click",()=>$$("#groupGrid .card").forEach(c=>c.classList.remove("collapsed")));
+  $("#collapseAll").addEventListener("click",()=>$$("#groupGrid .card").forEach(c=>c.classList.add("collapsed")));
+  $("#schedStage").addEventListener("change",()=>UI.renderSchedule());
+  $("#schedStatus").addEventListener("change",()=>UI.renderSchedule());
+
+  // header tools
+  $("#refreshBtn").addEventListener("click",()=>refresh(true));
+  $("#csvBtn").addEventListener("click",exportCSV);
+  $("#printBtn").addEventListener("click",()=>window.print());
+  $("#themeBtn").addEventListener("click",()=>{
+    const html=document.documentElement;
+    html.dataset.theme = html.dataset.theme==="dark"?"light":"dark";
+  });
+
+  refresh(true).then(startAutoRefresh);
+}
+document.addEventListener("DOMContentLoaded",init);
+</script>
+</body>
+</html>
