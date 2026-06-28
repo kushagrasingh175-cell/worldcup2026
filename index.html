@@ -172,8 +172,15 @@ table.wide tr.cut td{border-bottom:2px dashed var(--accent-2)}
 
 /* ---------- Bracket ---------- */
 .bracket-scroll{overflow-x:auto;padding:6px 2px 16px}
-.bracket{display:flex;gap:30px;min-width:1100px;align-items:stretch}
-.round{display:flex;flex-direction:column;justify-content:space-around;gap:10px;min-width:194px}
+.bracket{display:flex;gap:46px;min-width:1180px;align-items:stretch;position:relative}
+.round{display:flex;flex-direction:column;justify-content:space-around;gap:10px;min-width:194px;position:relative;z-index:1}
+/* SVG overlay that draws the winner-advances connector lines */
+svg.bracket-lines{position:absolute;left:0;top:0;pointer-events:none;overflow:visible;z-index:0}
+.ko-legend{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin:2px 2px 12px;font-size:12px;color:var(--txt-2)}
+.ko-legend span{display:inline-flex;align-items:center;gap:7px}
+.ko-legend i{width:26px;height:0;border-top-width:2px;border-top-style:solid;display:inline-block}
+.ko-legend i.solid{border-top-color:var(--accent-2)}
+.ko-legend i.dashed{border-top-style:dashed;border-top-color:var(--gold)}
 .round-title{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--txt-3);font-weight:800;
   text-align:center;margin-bottom:2px}
 .tie{
@@ -216,6 +223,33 @@ table.wide tr.cut td{border-bottom:2px dashed var(--accent-2)}
 .match.winr .mt.away .sname{color:var(--accent)}
 .sched-group{margin:18px 0 8px;font-weight:800;color:var(--txt-2);font-size:13px;letter-spacing:.3px}
 .meta{font-size:11px;color:var(--txt-3);font-family:var(--mono)}
+
+/* chronological IST schedule */
+.sched-day{display:flex;align-items:center;gap:10px;margin:22px 0 10px;font-weight:800;color:var(--txt);font-size:14px;letter-spacing:.3px}
+.sched-day::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+.sched-day .cnt{font-size:11px;color:var(--txt-3);font-weight:600;font-family:var(--mono)}
+.sched-rows{display:grid;grid-template-columns:repeat(auto-fill,minmax(370px,1fr));gap:10px}
+.srow{display:grid;grid-template-columns:74px 1fr;align-items:stretch;gap:12px;
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px}
+.srow .when{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  padding-right:12px;border-right:1px solid var(--line-soft)}
+.srow .when .tm{font-family:var(--mono);font-weight:800;font-size:13px;color:var(--accent-2);text-align:center;line-height:1.15}
+.srow .when .zone{font-size:9px;letter-spacing:.6px;color:var(--txt-3);font-weight:700}
+.srow .when .st{margin-top:3px;font-size:8.5px;font-weight:800;letter-spacing:.4px;padding:1px 6px;border-radius:999px;text-transform:uppercase}
+.srow .when .st.fin{color:var(--accent);background:var(--win-row);border:1px solid var(--qualify-bd)}
+.srow .when .st.upc{color:var(--txt-3);background:var(--bg-2);border:1px solid var(--line)}
+.srow .when .st.live{color:var(--elim-bd);background:var(--elim);border:1px solid var(--elim-bd)}
+.srow .game{display:flex;flex-direction:column;justify-content:center;gap:5px;min-width:0}
+.srow .slabel{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt-3);font-weight:700}
+.srow .steams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+.srow .steam{display:flex;align-items:center;gap:6px;font-weight:600;min-width:0}
+.srow .steam.away{justify-content:flex-end;text-align:right}
+.srow .steam .sn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow .steam.tbd .sn{color:var(--txt-3);font-style:italic;font-weight:500}
+.srow .steam.w .sn{color:var(--accent)}
+.srow .svs{font-family:var(--mono);font-weight:800;background:var(--bg-2);border:1px solid var(--line);
+  border-radius:7px;padding:3px 9px;color:var(--txt-2);min-width:52px;text-align:center}
+.srow .svs.sched{color:var(--txt-3);font-size:11px}
 
 /* ---------- misc ---------- */
 .empty{padding:40px;text-align:center;color:var(--txt-3)}
@@ -309,6 +343,7 @@ body.print-mode{--bg:#fff;--bg-2:#fff}
   <!-- BRACKET -->
   <section class="view hide" id="view-bracket">
     <div class="banner" id="bracketStatus"></div>
+    <div class="ko-legend" id="bracketLegend"></div>
     <div class="bracket-scroll">
       <div class="bracket" id="bracket"></div>
     </div>
@@ -428,6 +463,74 @@ const ROUND_LAYOUT = {
 const STAGE_OF = (()=>{ const s={}; ROUND_LAYOUT.R32.forEach(n=>s[n]="Round of 32");
   ROUND_LAYOUT.R16.forEach(n=>s[n]="Round of 16"); ROUND_LAYOUT.QF.forEach(n=>s[n]="Quarter-final");
   ROUND_LAYOUT.SF.forEach(n=>s[n]="Semi-final"); s[103]="Third place"; s[104]="Final"; return s; })();
+
+/* ════════════════════════════════════════════════════════════════════════
+   OFFICIAL KICK-OFF TIMES (match number → ET wall-clock kick-off).
+   Stored with the -04:00 (US Eastern, EDT) offset that applies during the
+   June–July tournament window. The schedule renders these in IST by letting
+   the browser convert the absolute instant to the Asia/Kolkata time zone, so
+   day-rollovers (most matches fall after midnight IST) are handled correctly.
+   Source: official FIFA World Cup 2026 match schedule.
+   ════════════════════════════════════════════════════════════════════════ */
+const MATCH_DT = {
+  /* ---- Group stage (1–72) ---- */
+  1:"2026-06-11T15:00:00-04:00",  2:"2026-06-11T22:00:00-04:00",
+  7:"2026-06-12T15:00:00-04:00", 19:"2026-06-12T21:00:00-04:00",
+  8:"2026-06-13T15:00:00-04:00", 13:"2026-06-13T18:00:00-04:00", 14:"2026-06-13T21:00:00-04:00",
+  20:"2026-06-14T00:00:00-04:00", 25:"2026-06-14T13:00:00-04:00", 31:"2026-06-14T16:00:00-04:00",
+  26:"2026-06-14T19:00:00-04:00", 32:"2026-06-14T22:00:00-04:00",
+  43:"2026-06-15T12:00:00-04:00", 37:"2026-06-15T15:00:00-04:00", 44:"2026-06-15T18:00:00-04:00",
+  38:"2026-06-15T21:00:00-04:00",
+  49:"2026-06-16T15:00:00-04:00", 50:"2026-06-16T18:00:00-04:00", 55:"2026-06-16T21:00:00-04:00",
+  56:"2026-06-17T00:00:00-04:00", 61:"2026-06-17T13:00:00-04:00", 67:"2026-06-17T16:00:00-04:00",
+  68:"2026-06-17T19:00:00-04:00", 62:"2026-06-17T22:00:00-04:00",
+  4:"2026-06-18T12:00:00-04:00", 10:"2026-06-18T15:00:00-04:00", 9:"2026-06-18T18:00:00-04:00",
+  3:"2026-06-18T21:00:00-04:00",
+  22:"2026-06-19T00:00:00-04:00", 21:"2026-06-19T15:00:00-04:00", 16:"2026-06-19T18:00:00-04:00",
+  15:"2026-06-19T20:30:00-04:00",
+  33:"2026-06-20T13:00:00-04:00", 27:"2026-06-20T16:00:00-04:00", 28:"2026-06-20T20:00:00-04:00",
+  34:"2026-06-21T00:00:00-04:00", 45:"2026-06-21T12:00:00-04:00", 39:"2026-06-21T15:00:00-04:00",
+  46:"2026-06-21T18:00:00-04:00", 40:"2026-06-21T21:00:00-04:00",
+  57:"2026-06-22T13:00:00-04:00", 51:"2026-06-22T17:00:00-04:00", 52:"2026-06-22T20:00:00-04:00",
+  58:"2026-06-22T23:00:00-04:00",
+  63:"2026-06-23T13:00:00-04:00", 69:"2026-06-23T16:00:00-04:00", 70:"2026-06-23T19:00:00-04:00",
+  64:"2026-06-23T22:00:00-04:00",
+  11:"2026-06-24T15:00:00-04:00", 12:"2026-06-24T15:00:00-04:00", 17:"2026-06-24T18:00:00-04:00",
+  18:"2026-06-24T18:00:00-04:00", 5:"2026-06-24T21:00:00-04:00", 6:"2026-06-24T21:00:00-04:00",
+  29:"2026-06-25T16:00:00-04:00", 30:"2026-06-25T16:00:00-04:00", 35:"2026-06-25T19:00:00-04:00",
+  36:"2026-06-25T19:00:00-04:00", 23:"2026-06-25T22:00:00-04:00", 24:"2026-06-25T22:00:00-04:00",
+  53:"2026-06-26T15:00:00-04:00", 54:"2026-06-26T15:00:00-04:00", 47:"2026-06-26T20:00:00-04:00",
+  48:"2026-06-26T20:00:00-04:00", 41:"2026-06-26T23:00:00-04:00", 42:"2026-06-26T23:00:00-04:00",
+  71:"2026-06-27T17:00:00-04:00", 72:"2026-06-27T17:00:00-04:00", 65:"2026-06-27T19:30:00-04:00",
+  66:"2026-06-27T19:30:00-04:00", 59:"2026-06-27T22:00:00-04:00", 60:"2026-06-27T22:00:00-04:00",
+  /* ---- Round of 32 (73–88) ---- */
+  73:"2026-06-28T15:00:00-04:00",
+  76:"2026-06-29T13:00:00-04:00", 74:"2026-06-29T16:30:00-04:00", 75:"2026-06-29T21:00:00-04:00",
+  78:"2026-06-30T13:00:00-04:00", 77:"2026-06-30T17:00:00-04:00", 79:"2026-06-30T21:00:00-04:00",
+  80:"2026-07-01T12:00:00-04:00", 82:"2026-07-01T16:00:00-04:00", 81:"2026-07-01T20:00:00-04:00",
+  84:"2026-07-02T15:00:00-04:00", 83:"2026-07-02T19:00:00-04:00", 85:"2026-07-02T23:00:00-04:00",
+  88:"2026-07-03T14:00:00-04:00", 86:"2026-07-03T18:00:00-04:00", 87:"2026-07-03T21:30:00-04:00",
+  /* ---- Round of 16 (89–96) ---- */
+  90:"2026-07-04T13:00:00-04:00", 89:"2026-07-04T17:00:00-04:00",
+  91:"2026-07-05T16:00:00-04:00", 92:"2026-07-05T20:00:00-04:00",
+  93:"2026-07-06T15:00:00-04:00", 94:"2026-07-06T20:00:00-04:00",
+  95:"2026-07-07T12:00:00-04:00", 96:"2026-07-07T16:00:00-04:00",
+  /* ---- Quarter-finals (97–100) ---- */
+  97:"2026-07-09T16:00:00-04:00", 98:"2026-07-10T15:00:00-04:00",
+  99:"2026-07-11T17:00:00-04:00", 100:"2026-07-11T21:00:00-04:00",
+  /* ---- Semi-finals / Third place / Final ---- */
+  101:"2026-07-14T15:00:00-04:00", 102:"2026-07-15T15:00:00-04:00",
+  103:"2026-07-18T17:00:00-04:00", 104:"2026-07-19T15:00:00-04:00"
+};
+/* Format an ISO instant into IST date + time parts for the schedule. */
+function istParts(iso){
+  const d = new Date(iso);
+  const date = d.toLocaleDateString("en-IN",
+    {weekday:"short", day:"2-digit", month:"short", year:"numeric", timeZone:"Asia/Kolkata"});
+  const time = d.toLocaleTimeString("en-IN",
+    {hour:"2-digit", minute:"2-digit", hour12:true, timeZone:"Asia/Kolkata"});
+  return { date, time, ms:d.getTime() };
+}
 
 /* ════════════════════════════════════════════════════════════════════════
    DATA LAYER — fetches from API or falls back to embedded demo data.
@@ -909,6 +1012,13 @@ const UI = {
       sb.innerHTML=`⏳ Awaiting results — the bracket seeds itself from the standings as soon as group matches are played.`;
     }
 
+    // legend explaining the connector lines
+    const lg=$("#bracketLegend");
+    if(lg) lg.innerHTML=
+      `<span><i class="solid"></i> Winner advances to next match</span>`+
+      `<span><i class="dashed"></i> Loser drops to the third-place match</span>`+
+      `<span style="color:var(--txt-3)">Each line shows which game's winner plays whom.</span>`;
+
     const colDefs=[
       ["Round of 32",ROUND_LAYOUT.R32],
       ["Round of 16",ROUND_LAYOUT.R16],
@@ -920,19 +1030,86 @@ const UI = {
       const col=document.createElement("div"); col.className="round";
       col.innerHTML=`<div class="round-title">${title}</div>`;
       nums.forEach(n=> col.appendChild(this._tie(ko.ties[n], n===104)));
-      // append champion + 3rd-place under the Final column
+      // champion sits directly under the Final so the Final tie stays centred
       if(title==="Final"){
         const champ=document.createElement("div"); champ.className="champ";
         champ.innerHTML=`<div class="ttl">🏆 Champion</div>
           <div class="who">${ ko.champion ? fmtTeam(ko.champion) : '—' }</div>`;
         col.appendChild(champ);
-        const tp=this._tie(ko.ties[103],false);
-        const lbl=document.createElement("div");
-        lbl.className="round-title"; lbl.style.marginTop="14px"; lbl.textContent="Third place";
-        col.appendChild(lbl); col.appendChild(tp);
       }
       wrap.appendChild(col);
     });
+    // dedicated trailing column for the third-place match (keeps the main tree clean)
+    const tpCol=document.createElement("div"); tpCol.className="round";
+    tpCol.innerHTML=`<div class="round-title">Third place</div>`;
+    tpCol.appendChild(this._tie(ko.ties[103],false));
+    wrap.appendChild(tpCol);
+
+    // draw the connector lines once the columns have laid out
+    requestAnimationFrame(()=>this.drawConnectors());
+  },
+  /* Map of which earlier matches feed each match (winner → next round). */
+  _feeders(){
+    const f={};
+    [...ROUND_LAYOUT.R16,...ROUND_LAYOUT.QF,...ROUND_LAYOUT.SF,104].forEach(n=>{
+      f[n] = KO_TEMPLATE[n].map(tok=>+tok.slice(1));   // both slots are W## tokens
+    });
+    return f;
+  },
+  /* Draw orthogonal SVG connectors over the bracket. */
+  drawConnectors(){
+    const bracket=$("#bracket");
+    if(!bracket) return;
+    const old=bracket.querySelector("svg.bracket-lines");
+    if(old) old.remove();
+    const brect=bracket.getBoundingClientRect();
+    if(!brect.width) return;                         // view hidden → skip, redraw on show
+
+    const cs=getComputedStyle(document.documentElement);
+    const winCol=(cs.getPropertyValue("--accent-2").trim())||"#4f8cff";
+    const loseCol=(cs.getPropertyValue("--gold").trim())||"#ffcf4d";
+
+    const NS="http://www.w3.org/2000/svg";
+    const svg=document.createElementNS(NS,"svg");
+    svg.setAttribute("class","bracket-lines");
+    svg.setAttribute("width", bracket.offsetWidth);
+    svg.setAttribute("height", bracket.offsetHeight);
+
+    const rectOf=n=>{
+      const el=bracket.querySelector(`.tie[data-m="${n}"]`);
+      if(!el) return null;
+      const r=el.getBoundingClientRect();
+      return {x:r.left-brect.left, y:r.top-brect.top, w:r.width, h:r.height};
+    };
+    const line=(from,to,color,dashed,nearTarget)=>{
+      const a=rectOf(from), b=rectOf(to);
+      if(!a||!b) return;
+      const x1=a.x+a.w, y1=a.y+a.h/2;          // right-centre of feeder
+      const x2=b.x,      y2=b.y+b.h/2;          // left-centre of target
+      const midx = nearTarget ? x2-22 : (x1+x2)/2;
+      const p=document.createElementNS(NS,"path");
+      p.setAttribute("d",`M ${x1.toFixed(1)} ${y1.toFixed(1)} H ${midx.toFixed(1)} V ${y2.toFixed(1)} H ${x2.toFixed(1)}`);
+      p.setAttribute("fill","none");
+      p.setAttribute("stroke",color);
+      p.setAttribute("stroke-width","2");
+      p.setAttribute("stroke-linejoin","round");
+      p.setAttribute("stroke-linecap","round");
+      if(dashed){ p.setAttribute("stroke-dasharray","5 4"); p.setAttribute("opacity","0.65"); }
+      svg.appendChild(p);
+      // small node where the line meets the target
+      const dot=document.createElementNS(NS,"circle");
+      dot.setAttribute("cx",x2.toFixed(1)); dot.setAttribute("cy",y2.toFixed(1));
+      dot.setAttribute("r","2.6"); dot.setAttribute("fill",color);
+      if(dashed) dot.setAttribute("opacity","0.65");
+      svg.appendChild(dot);
+    };
+
+    const feeders=this._feeders();
+    Object.keys(feeders).forEach(to=>feeders[to].forEach(from=>line(from,+to,winCol,false,false)));
+    // losers of the two semi-finals drop into the third-place match (103)
+    KO_TEMPLATE[103].forEach(tok=>line(+tok.slice(1),103,loseCol,true,true));
+
+    bracket.insertBefore(svg, bracket.firstChild);
   },
   _slotTok(tok){
     // Friendly placeholder for an unresolved slot
@@ -946,6 +1123,7 @@ const UI = {
   _tie(t,isFinal){
     const el=document.createElement("div");
     el.className="tie"+(isFinal?" final-tie":"");
+    el.dataset.m=t.n;
     el.innerHTML=`<span class="mno">M${t.n}</span>`+
       this._slot(t.home,t.homeTok,t.hs,t.winner)+
       this._slot(t.away,t.awayTok,t.as,t.winner);
@@ -964,66 +1142,90 @@ const UI = {
     </div>`;
   },
 
-  /* ---------- View 4: Schedule ---------- */
+  /* ---------- View 4: Schedule (chronological, IST) ---------- */
   renderSchedule(){
     const wrap=$("#scheduleWrap");
     const stage=$("#schedStage").value;
     const status=$("#schedStatus").value;
-    let html="";
+    const items=[];
 
     if(stage==="all"||stage==="group"){
-      GROUPS.forEach(g=>{
-        const ms=State.raw.groupMatches.filter(m=>m.group===g)
-          .filter(m=>status==="all"||m.status===status);
-        if(!ms.length) return;
-        // group fixtures by matchday when md is present
-        const byMd={};
-        ms.forEach(m=>{ const k=m.md||0; (byMd[k]=byMd[k]||[]).push(m); });
-        Object.keys(byMd).sort().forEach(k=>{
-          const label = k!=="0" ? `Group ${g} · Matchday ${k}` : `Group ${g}`;
-          html+=`<div class="sched-group">${label}</div><div class="sched-list">`;
-          byMd[k].sort((a,b)=>a.n-b.n).forEach(m=>html+=this._matchRow(m));
-          html+="</div>";
+      State.raw.groupMatches.forEach(m=>{
+        const fin = m.status==="finished" && m.hs!=null;
+        const live = m.status==="live";
+        const filterKey = fin?"finished":"scheduled";
+        if(status!=="all" && status!==filterKey) return;
+        const iso = MATCH_DT[m.n];
+        items.push({
+          n:m.n, parts: iso?istParts(iso):null,
+          home:m.home, away:m.away, homeTok:null, awayTok:null,
+          hs:m.hs, as:m.as, fin, live,
+          winl: fin&&m.hs>m.as, winr: fin&&m.as>m.hs,
+          label:`Group ${m.group}${m.md?` · Matchday ${m.md}`:""}`
         });
       });
     }
     if(stage==="all"||stage==="ko"){
-      const order=[...ROUND_LAYOUT.R32,...ROUND_LAYOUT.R16,...ROUND_LAYOUT.QF,...ROUND_LAYOUT.SF,103,104];
-      let curStage=null, open=false;
-      order.forEach(n=>{
+      [...ROUND_LAYOUT.R32,...ROUND_LAYOUT.R16,...ROUND_LAYOUT.QF,...ROUND_LAYOUT.SF,103,104].forEach(n=>{
         const t=State.ko.ties[n];
-        const st = t.played?"finished":"scheduled";
-        if(status!=="all" && status!==st) return;
-        if(t.stage!==curStage){
-          if(open) html+="</div>";
-          html+=`<div class="sched-group">${t.stage}</div><div class="sched-list">`;
-          curStage=t.stage; open=true;
-        }
-        html+=this._koRow(t);
+        const fin = t.played && t.hs!=null;
+        const filterKey = fin?"finished":"scheduled";
+        if(status!=="all" && status!==filterKey) return;
+        const iso = MATCH_DT[n];
+        items.push({
+          n, parts: iso?istParts(iso):null,
+          home:t.home, away:t.away, homeTok:t.homeTok, awayTok:t.awayTok,
+          hs:t.hs, as:t.as, fin, live:false,
+          winl: fin&&t.winner&&t.winner===t.home, winr: fin&&t.winner&&t.winner===t.away,
+          label:`${t.stage} · M${t.n}`
+        });
       });
-      if(open) html+="</div>";
     }
+
+    // sort by the absolute IST instant; anything without a time sinks to the end
+    items.sort((a,b)=>{
+      const am=a.parts?a.parts.ms:Infinity, bm=b.parts?b.parts.ms:Infinity;
+      return am-bm || a.n-b.n;
+    });
+
+    // group consecutive matches under their IST date heading
+    const days=[], byDate={};
+    items.forEach(it=>{
+      const key = it.parts?it.parts.date:"Date to be confirmed";
+      if(!(key in byDate)){ byDate[key]=[]; days.push(key); }
+      byDate[key].push(it);
+    });
+    let html="";
+    days.forEach(d=>{
+      const list=byDate[d];
+      html+=`<div class="sched-day">${d}<span class="cnt">${list.length} match${list.length>1?"es":""}</span></div>`+
+            `<div class="sched-rows">`;
+      list.forEach(it=>html+=this._schedRow(it));
+      html+=`</div>`;
+    });
     wrap.innerHTML = html || `<div class="empty">No matches match the current filters.</div>`;
   },
-  _matchRow(m){
-    const fin=m.status==="finished" && m.hs!=null;
-    const winl=fin&&m.hs>m.as, winr=fin&&m.as>m.hs;
-    const h=teamMeta(m.home), a=teamMeta(m.away);
-    return `<div class="match ${winl?'winl':''} ${winr?'winr':''}">
-      <div class="mt home"><span>${h.flag}</span><span class="sname">${h.name}</span></div>
-      <div class="vs ${fin?'':'sched'}">${fin?(m.hs+' : '+m.as):'vs'}</div>
-      <div class="mt away"><span class="sname">${a.name}</span><span>${a.flag}</span></div>
-    </div>`;
-  },
-  _koRow(t){
-    const fin=t.played && t.hs!=null;
-    const winl=fin&&t.winner&&t.winner===t.home, winr=fin&&t.winner&&t.winner===t.away;
-    const hn = t.home? teamMeta(t.home):{flag:"",name:this._slotTok(t.homeTok)};
-    const an = t.away? teamMeta(t.away):{flag:"",name:this._slotTok(t.awayTok)};
-    return `<div class="match ${winl?'winl':''} ${winr?'winr':''}">
-      <div class="mt home"><span>${hn.flag}</span><span class="sname">${hn.name}</span></div>
-      <div class="vs ${fin?'':'sched'}">${fin?(t.hs+' : '+t.as):'M'+t.n}</div>
-      <div class="mt away"><span class="sname">${an.name}</span><span>${an.flag}</span></div>
+  _schedRow(it){
+    const htbd=!it.home, atbd=!it.away;
+    const hn = htbd ? {flag:"", name:this._slotTok(it.homeTok||"")} : teamMeta(it.home);
+    const an = atbd ? {flag:"", name:this._slotTok(it.awayTok||"")} : teamMeta(it.away);
+    const time = it.parts ? it.parts.time : "TBC";
+    const stCls = it.live?"live":(it.fin?"fin":"upc");
+    const stTxt = it.live?"LIVE":(it.fin?"FT":"•");
+    const vs = it.fin ? `${it.hs} : ${it.as}` : "vs";
+    return `<div class="srow">
+      <div class="when">
+        <span class="tm">${time}</span><span class="zone">IST</span>
+        <span class="st ${stCls}">${stTxt}</span>
+      </div>
+      <div class="game">
+        <div class="slabel">${it.label}</div>
+        <div class="steams">
+          <span class="steam home ${htbd?'tbd':''} ${it.winl?'w':''}"><span>${hn.flag}</span><span class="sn">${hn.name}</span></span>
+          <span class="svs ${it.fin?'':'sched'}">${vs}</span>
+          <span class="steam away ${atbd?'tbd':''} ${it.winr?'w':''}"><span class="sn">${an.name}</span><span>${an.flag}</span></span>
+        </div>
+      </div>
     </div>`;
   }
 };
@@ -1116,6 +1318,8 @@ function switchView(v){
   State.view=v;
   $$(".tab").forEach(t=>t.classList.toggle("active",t.dataset.view===v));
   $$(".view").forEach(s=>s.classList.toggle("hide",s.id!=="view-"+v));
+  // the bracket measures DOM rects, which are zero while hidden — redraw on show
+  if(v==="bracket") requestAnimationFrame(()=>UI.drawConnectors());
 }
 
 function init(){
@@ -1143,6 +1347,15 @@ function init(){
   $("#themeBtn").addEventListener("click",()=>{
     const html=document.documentElement;
     html.dataset.theme = html.dataset.theme==="dark"?"light":"dark";
+    // connector colours come from theme tokens — redraw with the new palette
+    requestAnimationFrame(()=>UI.drawConnectors());
+  });
+
+  // keep bracket connector lines aligned when the window resizes
+  let rT;
+  window.addEventListener("resize",()=>{
+    clearTimeout(rT);
+    rT=setTimeout(()=>{ if(State.view==="bracket") UI.drawConnectors(); }, 150);
   });
 
   refresh(true).then(startAutoRefresh);
